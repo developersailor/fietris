@@ -15,6 +15,9 @@ import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:flutter/services.dart'; // LogicalKeyboardKey için
 import 'package:flutter/widgets.dart'; // KeyEventResult için
 import 'package:flutter/material.dart' show Colors, TextStyle, Shadow, Offset;
+import 'package:fietris/game/components/next_block_preview.dart';
+import 'package:collection/collection.dart';
+import 'dart:collection'; // Queue için
 
 // Oyun durumları
 enum GameState { playing, gameOver }
@@ -25,6 +28,8 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   Vector2 gridOrigin = Vector2(50, 50); // GridBackground ile aynı pozisyon
   late SettledBlocksComponent
       settledBlocksComponent; // Yerleşen blokları gösterecek component
+  BlockType? nextBlockType; // Sonraki blok tipi
+  late NextBlockPreview nextBlockPreviewComponent; // Önizleme component'i
 
   int score = 0; // Oyuncu skoru
   late TextComponent scoreTextComponent;
@@ -38,6 +43,14 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   double fallInterval = 1.0; // Her bir adım için saniye cinsinden süre
   double timeSinceLastFall = 0.0; // Son düşme adımından beri geçen süre
+
+  bool isProcessingMatches = false; // Eşleşme/Yerçekimi zinciri işleniyor mu?
+  int comboMultiplier = 0; // Mevcut kombo çarpanı/seviyesi
+
+  late TextComponent comboTextComponent;
+  late final TextPaint comboTextPaint;
+
+  static const int fitBonusPoints = 50; // Mükemmel Uyum bonus puanı
 
   @override
   Future<void> onLoad() async {
@@ -89,6 +102,24 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     add(scoreTextComponent); // Component'i oyuna ekle
     print("Score display added.");
 
+    // Önizleme component'ini oluştur
+    final previewAreaSize = defaultCellSize * 4;
+    nextBlockPreviewComponent = NextBlockPreview(
+      areaSize: previewAreaSize,
+      mainCellSize: defaultCellSize,
+      position: Vector2(
+          scoreTextComponent.position.x + scoreTextComponent.width + 20,
+          scoreTextComponent.position.y),
+    );
+    add(nextBlockPreviewComponent);
+
+    // "Next" etiketi ekle
+    add(TextComponent(
+      text: 'Next:',
+      textRenderer: scoreTextPaint,
+      position: nextBlockPreviewComponent.position + Vector2(0, -20),
+    ));
+
     // Game Over metni stilini tanımla
     final gameOverTextPaint = TextPaint(
       style: const TextStyle(
@@ -114,6 +145,31 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     add(gameOverTextComponent); // Oyuna ekle
     print("GameOver UI added.");
 
+    // Kombo metni stilini tanımla
+    comboTextPaint = TextPaint(
+      style: const TextStyle(
+        fontSize: 32.0,
+        color: Colors.yellowAccent,
+        fontWeight: FontWeight.bold,
+        shadows: [
+          Shadow(
+              blurRadius: 2.0,
+              color: Color.fromRGBO(0, 0, 0, 0.7),
+              offset: Offset(2, 2))
+        ],
+      ),
+    );
+
+    // Kombo TextComponent'ini oluştur
+    comboTextComponent = TextComponent(
+      text: '',
+      textRenderer: comboTextPaint,
+      position: Vector2(size.x / 2, size.y * 0.75),
+      anchor: Anchor.center,
+    );
+    add(comboTextComponent);
+    print("Combo display added.");
+
     // Dokunmatik kontrolleri ekle
     await add(TouchControls(game: this));
     print('Touch controls added!');
@@ -127,13 +183,24 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     if (currentState == GameState.gameOver)
       return; // Zaten bittiyse yeni blok oluşturma
 
-    final randomType = BlockType.getRandom();
+    BlockType typeToSpawn;
+
+    if (nextBlockType == null) {
+      typeToSpawn = BlockType.getRandom();
+      nextBlockType = BlockType.getRandom();
+      print("First spawn: Current=${typeToSpawn}, Next=${nextBlockType}");
+    } else {
+      typeToSpawn = nextBlockType!;
+      nextBlockType = BlockType.getRandom();
+      print("Spawning ${typeToSpawn}, Next is now ${nextBlockType}");
+    }
+
     int startX = gridWidth ~/ 2;
     int startY = 0;
 
     // === DÜZELTME: Spawn Alanı Kontrolü ===
     // Blok oluşturmadan önce, yerleşeceği grid hücreleri dolu mu diye bak
-    for (var pieceOffset in randomType.shape) {
+    for (var pieceOffset in typeToSpawn.shape) {
       // Parçanın potansiyel grid koordinatı (spawn pozisyonuna göre)
       final targetGridX = startX + pieceOffset.x.toInt();
       final targetGridY = startY + pieceOffset.y.toInt();
@@ -168,18 +235,26 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       gridOrigin.y + startY * defaultCellSize,
     );
     currentBlock = Block(
-      blockType: randomType,
+      blockType: typeToSpawn,
       cellSize: defaultCellSize,
       initialPosition: spawnPosition,
     );
     add(currentBlock!);
-    print("Spawned new block: $randomType at $spawnPosition");
+    print("Spawned new block: $typeToSpawn at $spawnPosition");
+
+    // Önizlemeyi güncelle
+    updateNextBlockPreview();
+  }
+
+  void updateNextBlockPreview() {
+    if (nextBlockPreviewComponent.isMounted) {
+      nextBlockPreviewComponent.showBlock(nextBlockType);
+    }
   }
 
   @override
   void update(double dt) {
-    if (currentState == GameState.gameOver)
-      return; // Oyun bittiyse güncelleme yapma
+    if (currentState == GameState.gameOver || isProcessingMatches) return;
 
     super.update(dt); // Önce üst sınıfın update'ini çağır
 
@@ -289,38 +364,101 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     return false;
   }
 
+  /// Verilen blok parçası koordinatlarına göre "Mükemmel Uyum" olup olmadığını kontrol eder.
+  /// Kontrol: Altında ve bloğun kapladığı satırlardaki yanlarında boşluk var mı?
+  bool checkForFitBonus(List<Vector2> blockCoords) {
+    if (blockCoords.isEmpty) return false;
+
+    // 1. Alt Kontrolü: Bloğun her parçasının altı dolu veya sınır olmalı.
+    for (var coord in blockCoords) {
+      final int currentX = coord.x.toInt();
+      final int belowY = coord.y.toInt() + 1;
+
+      // Eğer alt sınır içinde mi?
+      if (belowY < gridHeight) {
+        // Altındaki hücre boş mu?
+        if (gridData.getCell(currentX, belowY).state == CellState.empty) {
+          print("Fit check failed: Empty cell below at ($currentX, $belowY)");
+          return false; // Altında boşluk var, fit değil.
+        }
+      }
+      // Sınır dışıysa (en alt sıra) sorun yok.
+    }
+
+    // 2. Yan Kontrolü: Bloğun kapladığı her satır seviyesinde, en soldaki
+    //    parçanın solu ve en sağdaki parçanın sağı dolu veya sınır olmalı.
+    Map<int, Map<String, int>> yLevelBounds = {};
+    for (var coord in blockCoords) {
+      final y = coord.y.toInt();
+      final x = coord.x.toInt();
+      if (yLevelBounds.containsKey(y)) {
+        if (x < yLevelBounds[y]!['minX']!) yLevelBounds[y]!['minX'] = x;
+        if (x > yLevelBounds[y]!['maxX']!) yLevelBounds[y]!['maxX'] = x;
+      } else {
+        yLevelBounds[y] = {'minX': x, 'maxX': x};
+      }
+    }
+
+    for (int yLevel in yLevelBounds.keys) {
+      final bounds = yLevelBounds[yLevel]!;
+      // Sol kontrolü
+      final int leftX = bounds['minX']! - 1;
+      if (leftX >= 0) {
+        // Sol sınır içinde mi?
+        if (gridData.getCell(leftX, yLevel).state == CellState.empty) {
+          print("Fit check failed: Empty cell left at ($leftX, $yLevel)");
+          return false; // Solunda boşluk var, fit değil.
+        }
+      }
+      // Sağ kontrolü
+      final int rightX = bounds['maxX']! + 1;
+      if (rightX < gridWidth) {
+        // Sağ sınır içinde mi?
+        if (gridData.getCell(rightX, yLevel).state == CellState.empty) {
+          print("Fit check failed: Empty cell right at ($rightX, $yLevel)");
+          return false; // Sağında boşluk var, fit değil.
+        }
+      }
+    }
+
+    // Tüm kontrollerden geçtiyse, mükemmel uyum!
+    print("Fit check passed!");
+    return true;
+  }
+
   /// Düşen bloğu grid'e yerleştirir ve yeni bir blok oluşturur
   void settleBlock() {
     if (currentBlock == null) return;
-
     print("Settling block: ${currentBlock!.blockType}");
 
-    final shape = currentBlock!.blockType.shape;
-    final blockColor = currentBlock!.color;
-    final blockWorldPos = currentBlock!.position;
-    final cellSz = currentBlock!.cellSize;
+    final Block settledBlock = currentBlock!;
+    final List<Vector2> currentOffsets = settledBlock.currentShapeOffsets;
+    final Color blockColor = settledBlock.color;
+    final Vector2 blockWorldPos = settledBlock.position;
+    final cellSz = settledBlock.cellSize;
 
-    // 1. Grid Verisini Güncelle
-    for (var pieceOffset in shape) {
-      // Parçanın mutlak dünya pozisyonu
+    // Geçici: Blok parçalarının grid koordinatlarını sakla
+    List<Vector2> blockPieceGridCoords = [];
+
+    // 1. Grid Verisini Güncelle ve Koordinatları Topla
+    for (var pieceOffset in currentOffsets) {
       final pieceWorldPos = Vector2(
         blockWorldPos.x + pieceOffset.x * cellSz,
         blockWorldPos.y + pieceOffset.y * cellSz,
       );
-      // Dünya pozisyonunu grid koordinatlarına çevir
       final gridCoords = worldToGridCoords(pieceWorldPos);
       final gridX = gridCoords.x.toInt();
       final gridY = gridCoords.y.toInt();
+      blockPieceGridCoords.add(Vector2(gridX.toDouble(), gridY.toDouble()));
 
       // === YENİ: Tavan Kontrolü ===
       if (gridY < 0) {
         print("GAME OVER: Block settled partially above ceiling at y=$gridY.");
         gameOver();
-        // return; // gameOver zaten durumu değiştirip update'i durduracak
+        return;
       }
       // =========================
 
-      // GridData'daki ilgili hücreyi güncelle
       if (gridData.isWithinBounds(gridX, gridY)) {
         gridData.setCell(gridX, gridY, CellState.filled, blockColor);
         print(
@@ -330,6 +468,16 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
             "Warning: Attempted to settle block piece outside bounds at ($gridX, $gridY)");
       }
     }
+
+    // === YENİ: Fit Bonusu Kontrolü ===
+    bool isFit = checkForFitBonus(blockPieceGridCoords);
+    if (isFit) {
+      print("FIT BONUS! +$fitBonusPoints points.");
+      score += fitBonusPoints;
+      updateScoreDisplay();
+      // TODO: Fit Bonusu görsel/ses efekti tetikle
+    }
+    // ==============================
 
     // 2. Düşen Blok Component'ini Kaldır
     remove(currentBlock!);
@@ -343,7 +491,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     checkForCompletedLines();
 
     // 6. Yeni Blok Oluştur
-    spawnNewBlock();
+    if (!isProcessingMatches) {
+      spawnNewBlock();
+    }
   }
 
   /// Tüm sıraları kontrol eder ve tamamlananları temizler
@@ -432,15 +582,14 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
+    if (currentState == GameState.gameOver || isProcessingMatches)
+      return KeyEventResult.ignored;
+
     // Oyun bittiyse SADECE yeniden başlatma tuşunu dinle
-    if (currentState == GameState.gameOver) {
-      if (event is KeyDownEvent &&
-          event.logicalKey == LogicalKeyboardKey.keyR) {
-        print("Restart key pressed.");
-        restartGame(); // Yeniden başlatma metodunu çağır
-        return KeyEventResult.handled;
-      }
-      return KeyEventResult.ignored; // Oyun bittiyse diğer tuşları yoksay
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyR) {
+      print("Restart key pressed.");
+      restartGame(); // Yeniden başlatma metodunu çağır
+      return KeyEventResult.handled;
     }
 
     // Sadece tuşa basılma anını dinle
@@ -561,30 +710,260 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     score = 0;
     currentState = GameState.playing;
     timeSinceLastFall = 0.0;
-    // Gerekirse seviye veya düşme hızı gibi diğer değişkenleri de sıfırla
-    // level = 1; fallInterval = 1.0;
 
     // 2. Grid Verisini Temizle
-    gridData.clearGrid(); // GridData'daki tüm hücreleri 'empty' yap
+    gridData.clearGrid();
 
     // 3. Görselleri Temizle/Sıfırla
-    //    a. Mevcut düşen bloğu kaldır (varsa)
     if (currentBlock != null) {
       remove(currentBlock!);
       currentBlock = null;
     }
 
-    //    b. Game Over mesajını temizle
+    // Game Over mesajını temizle
     if (gameOverTextComponent.isMounted) {
       gameOverTextComponent.text = '';
     }
 
     // 4. Skor Göstergesini Güncelle
-    updateScoreDisplay(); // Skoru 0 olarak göster
+    updateScoreDisplay();
 
     // 5. İlk Bloğu Oluştur
     spawnNewBlock();
 
     print("Game Restarted!");
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+    if (currentState != GameState.playing || isProcessingMatches) {
+      print("Tap ignored: Game not playing or processing matches.");
+      return;
+    }
+
+    final Vector2 tapPosition = event.localPosition;
+    final gridRect = Rect.fromLTWH(
+      gridOrigin.x,
+      gridOrigin.y,
+      gridWidth * defaultCellSize,
+      gridHeight * defaultCellSize,
+    );
+
+    if (!gridRect.contains(tapPosition.toOffset())) {
+      print("Tap ignored: Outside grid area.");
+      return;
+    }
+
+    final Vector2 gridCoordsVec = worldToGridCoords(tapPosition);
+    final int gridX = gridCoordsVec.x.toInt();
+    final int gridY = gridCoordsVec.y.toInt();
+
+    if (!gridData.isWithinBounds(gridX, gridY)) {
+      print("Tap ignored: Calculated grid coordinates out of bounds.");
+      return;
+    }
+
+    final GridCell tappedCell = gridData.getCell(gridX, gridY);
+    if (tappedCell.state == CellState.filled && tappedCell.color != null) {
+      final Color tappedColor = tappedCell.color!;
+      List<Vector2> initialMatches = findMatches(gridX, gridY, tappedColor);
+
+      if (initialMatches.length >= 3) {
+        print(
+            "Initial match found (${initialMatches.length} blocks). Starting combo processing...");
+        isProcessingMatches = true;
+        comboMultiplier = 0;
+        clearComboDisplay();
+        processMatchesAndGravity(initialMatches);
+      } else {
+        print("Found only ${initialMatches.length} blocks. No combo.");
+      }
+    } else {
+      print(
+          "Tap ignored: Cell ($gridX, $gridY) is not filled (state: ${tappedCell.state}).");
+    }
+  }
+
+  /// Verilen başlangıç noktasından başlayarak, hedef renkle eşleşen ve
+  /// birbirine bağlı (4 yönlü) dolu hücrelerin grid koordinatlarını bulur.
+  /// BFS algoritmasını kullanır.
+  List<Vector2> findMatches(int startX, int startY, Color targetColor) {
+    final List<Vector2> matchedCells = []; // Bulunan eşleşen hücreler
+    final Queue<Vector2> queue = Queue(); // Ziyaret edilecek hücreler kuyruğu
+    final Set<Vector2> visited =
+        {}; // Ziyaret edilen veya kuyruğa eklenen hücreler
+
+    // Başlangıç hücresi geçerli mi?
+    final startCell = gridData.getCell(startX, startY);
+    if (startCell.state != CellState.filled || startCell.color != targetColor) {
+      return matchedCells; // Başlangıç hücresi hedefle eşleşmiyorsa boş liste döndür
+    }
+
+    // BFS Başlangıcı
+    final startVec = Vector2(startX.toDouble(), startY.toDouble());
+    queue.add(startVec);
+    visited.add(startVec);
+
+    // Kuyruk boşalana kadar devam et
+    while (queue.isNotEmpty) {
+      final currentVec = queue.removeFirst();
+      matchedCells.add(currentVec); // Eşleşenlere ekle
+
+      final currentX = currentVec.x.toInt();
+      final currentY = currentVec.y.toInt();
+
+      // Komşuları kontrol et (Yukarı, Aşağı, Sol, Sağ)
+      final List<Vector2> neighborsOffsets = [
+        Vector2(0, -1), // Yukarı
+        Vector2(0, 1), // Aşağı
+        Vector2(-1, 0), // Sol
+        Vector2(1, 0), // Sağ
+      ];
+
+      for (var offset in neighborsOffsets) {
+        final int neighborX = currentX + offset.x.toInt();
+        final int neighborY = currentY + offset.y.toInt();
+        final neighborVec = Vector2(neighborX.toDouble(), neighborY.toDouble());
+
+        // 1. Sınır Kontrolü
+        if (!gridData.isWithinBounds(neighborX, neighborY)) continue;
+
+        // 2. Ziyaret Edildi mi Kontrolü
+        if (visited.contains(neighborVec)) continue;
+
+        // 3. Hücre Durumu ve Renk Kontrolü
+        final neighborCell = gridData.getCell(neighborX, neighborY);
+        if (neighborCell.state == CellState.filled &&
+            neighborCell.color == targetColor) {
+          // Eşleşme bulundu! Kuyruğa ve ziyaret edilenlere ekle
+          visited.add(neighborVec);
+          queue.add(neighborVec);
+        }
+      }
+    }
+
+    // Eşleşen hücrelerin listesini döndür
+    return matchedCells;
+  }
+
+  // Sadece GridData'yı temizler
+  void _clearMatchesInternal(List<Vector2> matches) {
+    if (matches.isEmpty) return;
+    print("Internal Clearing ${matches.length} blocks...");
+    for (var matchCoord in matches) {
+      final int gridX = matchCoord.x.toInt();
+      final int gridY = matchCoord.y.toInt();
+      if (gridData.isWithinBounds(gridX, gridY)) {
+        gridData.setCell(gridX, gridY, CellState.empty, null);
+      }
+    }
+  }
+
+  // Sadece GridData'ya yerçekimi uygular
+  void _applyGravityInternal() {
+    print("Internal Applying gravity...");
+    for (int x = 0; x < gridWidth; x++) {
+      int writeIndex = gridHeight - 1;
+      for (int y = gridHeight - 1; y >= 0; y--) {
+        final cell = gridData.getCell(x, y);
+        if (cell.state == CellState.filled) {
+          if (y != writeIndex) {
+            gridData.setCell(x, writeIndex, cell.state, cell.color);
+            gridData.setCell(x, y, CellState.empty, null);
+          }
+          writeIndex--;
+        }
+      }
+    }
+  }
+
+  /// Tüm grid'i tarar ve 3 veya daha fazla eşleşen blok gruplarını bulur.
+  List<Vector2> findNewCombos() {
+    print("Checking for new combos...");
+    final List<Vector2> allNewMatches = [];
+    final Set<Vector2> visitedInCycle = {};
+
+    for (int y = 0; y < gridHeight; y++) {
+      for (int x = 0; x < gridWidth; x++) {
+        final currentVec = Vector2(x.toDouble(), y.toDouble());
+        if (!visitedInCycle.contains(currentVec)) {
+          final cell = gridData.getCell(x, y);
+          if (cell.state == CellState.filled && cell.color != null) {
+            List<Vector2> potentialMatch = findMatches(x, y, cell.color!);
+            visitedInCycle.addAll(potentialMatch);
+            if (potentialMatch.length >= 3) {
+              print(
+                  "Found combo group of ${potentialMatch.length} at ($x, $y)");
+              allNewMatches.addAll(potentialMatch);
+            }
+          } else {
+            visitedInCycle.add(currentVec);
+          }
+        }
+      }
+    }
+    print(
+        "Combo check finished. Found ${allNewMatches.length} blocks in new combos.");
+    return allNewMatches;
+  }
+
+  /// Temizlenen blok sayısına göre temel puanı hesaplar.
+  int calculateMatchScore(int numberOfBlocks) {
+    if (numberOfBlocks < 3) return 0;
+    switch (numberOfBlocks) {
+      case 3:
+        return 30;
+      case 4:
+        return 50;
+      case 5:
+        return 80;
+      default:
+        return 80 + (numberOfBlocks - 5) * 40;
+    }
+  }
+
+  void updateComboDisplay() {
+    if (isMounted && children.contains(comboTextComponent)) {
+      if (comboMultiplier >= 2) {
+        comboTextComponent.text = 'Combo x$comboMultiplier!';
+      } else {
+        comboTextComponent.text = '';
+      }
+    }
+  }
+
+  void clearComboDisplay() {
+    if (isMounted && children.contains(comboTextComponent)) {
+      comboTextComponent.text = '';
+    }
+  }
+
+  /// Verilen eşleşmeleri temizler, yerçekimi uygular ve yeni kombolar arar.
+  void processMatchesAndGravity(List<Vector2> matchesToClear) {
+    comboMultiplier++;
+    print("Processing Combo x$comboMultiplier");
+
+    int baseScore = calculateMatchScore(matchesToClear.length);
+    int currentStepScore = baseScore * comboMultiplier;
+    score += currentStepScore;
+    updateScoreDisplay();
+    print(
+        "Scored: base=$baseScore * combo=x$comboMultiplier = $currentStepScore points. Total Score: $score");
+
+    updateComboDisplay();
+
+    _clearMatchesInternal(matchesToClear);
+    _applyGravityInternal();
+
+    List<Vector2> nextMatches = findNewCombos();
+
+    if (nextMatches.isNotEmpty) {
+      processMatchesAndGravity(nextMatches);
+    } else {
+      print("Combo chain finished at x$comboMultiplier.");
+      isProcessingMatches = false;
+      clearComboDisplay();
+    }
   }
 }
