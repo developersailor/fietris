@@ -509,6 +509,18 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // 4. Görsel Güncelleme (artık SettledBlocksComponent tarafından otomatik yapılıyor)
 
+    // === YENİ: Otomatik Alan Kontrolü ===
+    List<int> potentialAutoClearAreas = checkPotentialAutoClearAreas();
+    if (potentialAutoClearAreas.isNotEmpty) {
+      print(
+          "Found potential auto-clear areas starting at rows: $potentialAutoClearAreas. Performing clear...");
+      // === YENİ: Otomatik Alan Temizlemeyi Tetikle ===
+      performAutoAreaClear(potentialAutoClearAreas);
+      return; // Otomatik temizleme yapılırsa diğer kontrolleri atla
+      // =============================================
+    }
+    // ===================================
+
     // 5. Tamamlanan Sıraları Kontrol Et ve Temizle
     checkForCompletedLines();
 
@@ -1140,29 +1152,59 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     return candidateAreaStartRows;
   }
 
-  /// Belirlenen alanları otomatik olarak temizler
-  void performAutoAreaClear(List<int> areaStartRows) {
-    if (areaStartRows.isEmpty) return;
+  /// Belirtilen başlangıç satırlarından oluşan 3'lü alanlardaki
+  /// TÜM DOLU hücreleri GridData'dan temizler.
+  void performAutoAreaClear(List<int> startRows) {
+    if (startRows.isEmpty) return;
     isProcessingMatches = true;
 
-    print("Otomatik temizleme başlatılıyor...");
-
-    // Her bir aday alan için
-    for (int startY in areaStartRows) {
-      print("Alan temizleniyor: y=$startY");
-
-      // 3 satırlık alanı temizle
-      for (int y = startY; y < startY + 3; y++) {
+    // 1. Temizlenecek Benzersiz Hücre Koordinatlarını Topla (Overlap'leri engellemek için Set kullan)
+    final Set<Vector2> cellsToClear = {};
+    for (int startY in startRows) {
+      // İlgili 3 satırı ve tüm sütunları tara
+      for (int y = startY; y < startY + 3 && y < gridHeight; y++) {
+        // gridHeight sınırını kontrol et
         for (int x = 0; x < gridWidth; x++) {
-          if (gridData.isWithinBounds(x, y)) {
-            gridData.setCell(x, y, CellState.empty, null);
+          // Sadece DOLU hücreleri temizlenecekler listesine ekle
+          if (gridData.getCell(x, y).state == CellState.filled) {
+            cellsToClear.add(Vector2(x.toDouble(), y.toDouble()));
           }
         }
       }
     }
 
-    // Yerçekimi uygula
-    _applyGravityInternal();
+    // Eğer temizlenecek hücre bulunduysa devam et
+    if (cellsToClear.isNotEmpty) {
+      print(
+          "Otomatik olarak ${cellsToClear.length} dolu hücre temizleniyor...");
+
+      // TODO: Otomatik temizleme için özel bir ses efekti çal?
+      // FlameAudio.play('auto_clear.wav');
+
+      // TODO: Otomatik temizleme için görsel efektleri tetikle?
+      // Bu hücrelerin konumlarında parçacık efekti oluşturulabilir.
+      // for (var coord in cellsToClear) {
+      //    add(createClearEffect(gridToWorldCoords(coord.x.toInt(), coord.y.toInt()) + Vector2.all(defaultCellSize / 2), Colors.lightBlue)); // Örnek renk
+      // }
+
+      // 2. Toplanan Benzersiz Hücreleri GridData'dan Temizle
+      for (var coord in cellsToClear) {
+        final int gridX = coord.x.toInt();
+        final int gridY = coord.y.toInt();
+        // GridData'daki hücreyi temizle
+        gridData.setCell(gridX, gridY, CellState.empty, null);
+        print("Otomatik temizlenen hücre: ($gridX, $gridY)");
+      }
+
+      // TODO: Skorlama - Temizlenen hücre sayısına göre (cellsToClear.length) puan ekle.
+      // score += calculateAutoClearScore(cellsToClear.length);
+      // updateScoreDisplay();
+
+      // Yerçekimi uygula - Bu temizleme sonrası yerçekimi etkilerini uygula
+      _applyGravityInternal();
+    } else {
+      print("Temizleme adayı alanlarda dolu hücre bulunamadı.");
+    }
 
     // İşlem tamamlandı
     isProcessingMatches = false;
