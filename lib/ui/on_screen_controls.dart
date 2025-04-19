@@ -42,7 +42,10 @@ class OnScreenControlsWidget extends StatelessWidget {
                   ControlButton(
                       icon: Icons.arrow_downward,
                       onPressed: game.softDropBlock),
-                  // TODO: Hard Drop için ayrı buton eklenebilir
+                  const SizedBox(width: 20),
+                  ControlButton(
+                      icon: Icons.vertical_align_bottom,
+                      onPressed: game.performHardDrop)
                 ],
               ),
             ),

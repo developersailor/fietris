@@ -703,6 +703,12 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
           return KeyEventResult.handled; // Olay yine de işlendi (tuşa basıldı)
         }
       }
+      // Boşluk Tuşu (Hard Drop)
+      else if (event.logicalKey == LogicalKeyboardKey.space) {
+        print("Hard Drop initiated...");
+        performHardDrop(); // Hard drop işlemini yap
+        return KeyEventResult.handled;
+      }
     }
     // Diğer tuşları veya olayları yoksay
     return KeyEventResult.ignored;
@@ -1036,45 +1042,56 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
   }
 
-  /// Belirtilen pozisyonda bir temizleme parçacık efekti oluşturur ve döndürür.
-  ParticleSystemComponent createClearEffect(
-      Vector2 position, Color particleColor) {
-    final Random rnd = Random();
-    // Rastgele hız ve ömür ile parçacıklar oluştur
-    Particle particle = ComputedParticle(
-      renderer: (canvas, particle) {
-        // Küçülen ve solan bir daire çizelim
-        double progress = particle.progress; // 0.0 -> 1.0
-        double currentSize = defaultCellSize * 0.3 * (1.0 - progress);
-        final paint = Paint()
-          ..color = particleColor.withOpacity(1.0 - progress);
-        canvas.drawCircle(Offset.zero, currentSize, paint);
-      },
-    );
+  /// Verilen bloğun mevcut konumundan başlayarak inebileceği en alt
+  /// geçerli dünya (world) koordinatını döndürür.
+  Vector2 predictLandingPosition(Block block) {
+    Vector2 currentPos = block.position; // Mevcut pozisyondan başla
+    Vector2 nextPos = currentPos;
 
-    // Parçacık sistemini oluştur
-    final particleSystem = ParticleSystemComponent(
-      particle: TranslatedParticle(
-        offset: position, // Efektin oyun dünyasındaki pozisyonu
-        lifespan: 0.6, // Parçacıkların toplam ömrü (saniye)
-        child: AcceleratedParticle(
-          // Parçacıkların hareketi
-          speed: Vector2(rnd.nextDouble() * 100 - 50,
-              -rnd.nextDouble() * 150), // Rastgele yukarı ve yanlara hız
-          acceleration: Vector2(0, 200), // Yerçekimi benzeri aşağı ivme
-          child: particle,
-        ),
-      ),
-      // particleCount: 5, // İsteğe bağlı: Aynı anda kaç parçacık olacağı
-    );
+    while (true) {
+      // Bir sonraki potansiyel pozisyon (bir hücre aşağı)
+      nextPos = currentPos + Vector2(0, block.cellSize);
 
-    // Efekt bittikten sonra kendini otomatik olarak kaldırmasını sağla
-    particleSystem.add(RemoveEffect(delay: 0.6)); // Lifespan ile aynı süre
+      // Bir sonraki pozisyonda çarpışma var mı?
+      bool collision = checkCollision(block, nextPos);
 
-    return particleSystem;
+      if (collision) {
+        // Evet, çarpışma var. Demek ki en son geçerli pozisyon 'currentPos'.
+        // Döngüden çık ve currentPos'u döndür.
+        break;
+      } else {
+        // Çarpışma yok, bir adım aşağı inebiliriz.
+        currentPos = nextPos;
+      }
+    }
+    return currentPos; // Son geçerli pozisyon
   }
 
-  /// Sol ok butonu veya hareketi için public metot
+  /// Hard Drop işlemini gerçekleştirir - bloğu anında en alttaki uygun konuma indirir
+  void performHardDrop() {
+    if (currentBlock == null) return; // Güvenlik kontrolü
+
+    // 1. İniş pozisyonunu tahmin et
+    Vector2 landingPosition = predictLandingPosition(currentBlock!);
+    print("Predicted landing position: $landingPosition");
+
+    // 2. Bloğu anında o pozisyona taşı
+    currentBlock!.position = landingPosition;
+
+    // TODO: Hard Drop için skor ekle? (İndiği mesafe * çarpan gibi)
+    // score += calculateHardDropScore(initialY, landingPosition.y);
+
+    // TODO: Hard Drop ses efekti çal?
+    // FlameAudio.play('hard_drop.wav');
+
+    // TODO: Hayalet Parça (Ghost Piece) gösterimi eklenebilir.
+
+    // 3. Bloğu hemen yerleştir (GridData'yı güncelle, satır kontrolü yap, yeni blok oluştur)
+    settleBlock(); // settleBlock zaten gerekli adımları (SFX dahil) yapmalı
+    print("Hard Drop complete, block settled.");
+  }
+
+  /// Sol ok butonu için public metot - bloğu sola hareket ettirir
   void moveBlockLeft() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
@@ -1083,11 +1100,10 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         currentBlock!.position.x - defaultCellSize, currentBlock!.position.y);
     if (!checkCollision(currentBlock!, potentialPosition)) {
       currentBlock!.moveLeft();
-      // SES YOK
     }
   }
 
-  /// Sağ ok butonu veya hareketi için public metot
+  /// Sağ ok butonu için public metot - bloğu sağa hareket ettirir
   void moveBlockRight() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
@@ -1096,22 +1112,18 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         currentBlock!.position.x + defaultCellSize, currentBlock!.position.y);
     if (!checkCollision(currentBlock!, potentialPosition)) {
       currentBlock!.moveRight();
-      // SES YOK
     }
   }
 
-  /// Döndürme butonu için public metot
+  /// Döndürme butonu için public metot - bloğu döndürür
   void rotateBlock() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
         currentBlock == null) return;
-    bool rotated = currentBlock!.tryRotate();
-    if (rotated) {
-      // SES YOK
-    }
+    currentBlock!.tryRotate();
   }
 
-  /// Soft drop butonu için public metot (tek adım)
+  /// Yumuşak düşürme butonu için public metot - bloğu bir adım aşağı indirir
   void softDropBlock() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
@@ -1123,7 +1135,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       timeSinceLastFall = 0.0; // Otomatik düşmeyi resetle
       score += 1; // Soft drop skoru
       updateScoreDisplay();
-      // SES YOK
     }
   }
 }
