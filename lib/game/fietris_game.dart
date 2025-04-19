@@ -785,52 +785,22 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
-    if (currentState != GameState.playing || isProcessingMatches) {
-      print("Tap ignored: Game not playing or processing matches.");
+
+    // Oyun bittiğinde yeniden başlatma kontrolü
+    if (currentState == GameState.gameOver) {
+      print("Game over screen tapped. Restarting game...");
+      restartGame();
       return;
     }
 
-    final Vector2 tapPosition = event.localPosition;
-    final gridRect = Rect.fromLTWH(
-      gridOrigin.x,
-      gridOrigin.y,
-      gridWidth * defaultCellSize,
-      gridHeight * defaultCellSize,
-    );
+    // TÜM BLOK SİLME MANTIĞI KALDIRILDI
+    // Artık hiçbir şekilde tıklama ile bloklar temizlenmiyor
 
-    if (!gridRect.contains(tapPosition.toOffset())) {
-      print("Tap ignored: Outside grid area.");
-      return;
-    }
+    // Debug için bilgi mesajı
+    print("Tap received but all block clearing via taps is disabled.");
 
-    final Vector2 gridCoordsVec = worldToGridCoords(tapPosition);
-    final int gridX = gridCoordsVec.x.toInt();
-    final int gridY = gridCoordsVec.y.toInt();
-
-    if (!gridData.isWithinBounds(gridX, gridY)) {
-      print("Tap ignored: Calculated grid coordinates out of bounds.");
-      return;
-    }
-
-    final GridCell tappedCell = gridData.getCell(gridX, gridY);
-    if (tappedCell.state == CellState.filled && tappedCell.color != null) {
-      final Color tappedColor = tappedCell.color!;
-      List<Vector2> initialMatches = findMatches(gridX, gridY, tappedColor);
-
-      if (initialMatches.length >= 3) {
-        print(
-            "Initial match found (${initialMatches.length} blocks). Starting combo processing...");
-        isProcessingMatches = true;
-        comboMultiplier = 0;
-        clearComboDisplay();
-        processMatchesAndGravity(initialMatches);
-      } else {
-        print("Found only ${initialMatches.length} blocks. No combo.");
-      }
-    } else {
-      print(
-          "Tap ignored: Cell ($gridX, $gridY) is not filled (state: ${tappedCell.state}).");
-    }
+    // Bu metot artık sadece bilgi vermek için var, başka bir işlem yapmıyor.
+    // Bloklar sadece otomatik temizleme sistemi ile temizlenecek
   }
 
   /// Verilen başlangıç noktasından başlayarak, hedef renkle eşleşen ve
@@ -1135,6 +1105,71 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       timeSinceLastFall = 0.0; // Otomatik düşmeyi resetle
       score += 1; // Soft drop skoru
       updateScoreDisplay();
+    }
+  }
+
+  /// Grid'i tarayarak, 1 ile 5 arasında boş hücre içeren 3 satırlık
+  /// potansiyel otomatik temizleme alanlarını bulan metot.
+  /// Bulunan alanların başlangıç Y indekslerini içeren bir liste döndürür.
+  List<int> checkPotentialAutoClearAreas() {
+    List<int> candidateAreaStartRows =
+        []; // Koşulu sağlayan alanların başlangıç satırları
+
+    // Olası başlangıç satırlarını tara (en alttaki 3 satır için y = gridHeight - 3)
+    for (int y = 0; y <= gridHeight - 3; y++) {
+      int emptyCellCount = 0;
+
+      // Mevcut 3 satırlık alanı (y, y+1, y+2) tara
+      for (int checkY = y; checkY < y + 3; checkY++) {
+        for (int x = 0; x < gridWidth; x++) {
+          if (gridData.getCell(x, checkY).state == CellState.empty) {
+            emptyCellCount++;
+          }
+        }
+      }
+
+      // Koşulu kontrol et: Boş hücre sayısı 1 ile 5 arasında mı?
+      if (emptyCellCount >= 1 && emptyCellCount <= 5) {
+        print(
+            "Alan y=$y'da kriterlere uyuyor (boş hücreler: $emptyCellCount). Aday olarak ekleniyor.");
+        candidateAreaStartRows.add(y);
+      }
+    }
+
+    // Not: Üst üste binen alanlar olabilir (örn: y=5 ve y=6 başlayabilir).
+    return candidateAreaStartRows;
+  }
+
+  /// Belirlenen alanları otomatik olarak temizler
+  void performAutoAreaClear(List<int> areaStartRows) {
+    if (areaStartRows.isEmpty) return;
+    isProcessingMatches = true;
+
+    print("Otomatik temizleme başlatılıyor...");
+
+    // Her bir aday alan için
+    for (int startY in areaStartRows) {
+      print("Alan temizleniyor: y=$startY");
+
+      // 3 satırlık alanı temizle
+      for (int y = startY; y < startY + 3; y++) {
+        for (int x = 0; x < gridWidth; x++) {
+          if (gridData.isWithinBounds(x, y)) {
+            gridData.setCell(x, y, CellState.empty, null);
+          }
+        }
+      }
+    }
+
+    // Yerçekimi uygula
+    _applyGravityInternal();
+
+    // İşlem tamamlandı
+    isProcessingMatches = false;
+
+    // Yeni blok oluştur (eğer yoksa)
+    if (currentBlock == null) {
+      spawnNewBlock();
     }
   }
 }
