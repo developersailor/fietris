@@ -1,4 +1,5 @@
 import 'package:fietris/game/fietris_game.dart';
+import 'package:fietris/ui/on_screen_controls.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,7 +34,16 @@ class AppView extends StatelessWidget {
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: GameWidget(game: FietrisGame()),
+      home: Scaffold(
+        body: GameWidget<FietrisGame>.controlled(
+          gameFactory: FietrisGame.new,
+          overlayBuilderMap: {
+            'onScreenControls': (context, game) =>
+                OnScreenControlsWidget(game: game),
+          },
+          initialActiveOverlays: const ['onScreenControls'],
+        ),
+      ),
     );
   }
 }

@@ -60,5 +60,5 @@ Anladım, "Yapılması Gereken İşler" listesini belirttiğiniz özelliklere od
     * `[ ]` **[Game Logic]** Hedef Skoruna Dayalı Kazanma Koşulu.
     * `[ ]` **[Game Logic]** Duraklatma (Pause) ve Devam Etme (Resume) Mekanizması.
 * **👆 Alternatif Girdiler**
-    * `[ ]` **[Input]** Ekran Üstü Kontrol Butonları (D-Pad, Döndürme, Hızlı İndirme - `ButtonComponent` veya Flutter Overlay).
+    * `[✅]` **[Input]** Ekran Üstü Kontrol Butonları (D-Pad, Döndürme, Hızlı İndirme - `ButtonComponent` veya Flutter Overlay).
     * `[ ]` **[Input]** Hard Drop (Anında İndirme) mekaniği (Klavye -örn: Boşluk, Dokunmatik - örn: Hızlı Swipe).

@@ -192,9 +192,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     add(comboTextComponent);
     print("Combo display added.");
 
-    // Dokunmatik kontrolleri ekle
-    await add(TouchControls(game: this));
-    print('Touch controls added!');
+    // NOT: Eski dokunmatik kontroller overlay ile değiştirildiği için devre dışı bırakıldı
+    // await add(TouchControls(game: this));
+    // print('Touch controls added!');
 
     // İlk bloğu oluştur ve ekle
     spawnNewBlock();
@@ -1072,5 +1072,58 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     particleSystem.add(RemoveEffect(delay: 0.6)); // Lifespan ile aynı süre
 
     return particleSystem;
+  }
+
+  /// Sol ok butonu veya hareketi için public metot
+  void moveBlockLeft() {
+    if (currentState != GameState.playing ||
+        isProcessingMatches ||
+        currentBlock == null) return;
+    final potentialPosition = Vector2(
+        currentBlock!.position.x - defaultCellSize, currentBlock!.position.y);
+    if (!checkCollision(currentBlock!, potentialPosition)) {
+      currentBlock!.moveLeft();
+      // SES YOK
+    }
+  }
+
+  /// Sağ ok butonu veya hareketi için public metot
+  void moveBlockRight() {
+    if (currentState != GameState.playing ||
+        isProcessingMatches ||
+        currentBlock == null) return;
+    final potentialPosition = Vector2(
+        currentBlock!.position.x + defaultCellSize, currentBlock!.position.y);
+    if (!checkCollision(currentBlock!, potentialPosition)) {
+      currentBlock!.moveRight();
+      // SES YOK
+    }
+  }
+
+  /// Döndürme butonu için public metot
+  void rotateBlock() {
+    if (currentState != GameState.playing ||
+        isProcessingMatches ||
+        currentBlock == null) return;
+    bool rotated = currentBlock!.tryRotate();
+    if (rotated) {
+      // SES YOK
+    }
+  }
+
+  /// Soft drop butonu için public metot (tek adım)
+  void softDropBlock() {
+    if (currentState != GameState.playing ||
+        isProcessingMatches ||
+        currentBlock == null) return;
+    final potentialPosition = Vector2(
+        currentBlock!.position.x, currentBlock!.position.y + defaultCellSize);
+    if (!checkCollision(currentBlock!, potentialPosition)) {
+      currentBlock!.moveDown();
+      timeSinceLastFall = 0.0; // Otomatik düşmeyi resetle
+      score += 1; // Soft drop skoru
+      updateScoreDisplay();
+      // SES YOK
+    }
   }
 }
