@@ -1,23 +1,24 @@
-import 'dart:ui';
+import 'dart:collection'; // Queue için
+import 'dart:math';
+
+import 'package:fietris/game/blocks/block.dart';
+import 'package:fietris/game/blocks/block_type.dart';
+import 'package:fietris/game/components/next_block_preview.dart';
+import 'package:fietris/game/components/settled_blocks_component.dart';
+import 'package:fietris/game/components/touch_controls.dart';
 import 'package:fietris/game/grid_background.dart';
 import 'package:fietris/game/grid_config.dart';
 import 'package:fietris/game/grid_data.dart';
-import 'package:fietris/game/blocks/block.dart';
-import 'package:fietris/game/blocks/block_type.dart';
-import 'package:fietris/game/components/touch_controls.dart';
-import 'package:fietris/game/components/settled_blocks_component.dart';
-import 'package:flame/game.dart';
-import 'package:flame/events.dart'; // KeyboardEvents için
 import 'package:flame/components.dart'
     hide Block; // TextComponent için, Block hariç
+import 'package:flame/effects.dart'; // RemoveEffect için
+import 'package:flame/events.dart'; // KeyboardEvents için
+import 'package:flame/game.dart';
+import 'package:flame/particles.dart'; // Particle, ParticleSystemComponent için
 import 'package:flame/text.dart'; // TextPaint için
-import 'package:vector_math/vector_math_64.dart' hide Colors;
+import 'package:flutter/material.dart' show Colors, TextStyle, Shadow, Offset;
 import 'package:flutter/services.dart'; // LogicalKeyboardKey için
 import 'package:flutter/widgets.dart'; // KeyEventResult için
-import 'package:flutter/material.dart' show Colors, TextStyle, Shadow, Offset;
-import 'package:fietris/game/components/next_block_preview.dart';
-import 'package:collection/collection.dart';
-import 'dart:collection'; // Queue için
 
 // Oyun durumları
 enum GameState { playing, gameOver }
@@ -34,6 +35,13 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   int score = 0; // Oyuncu skoru
   late TextComponent scoreTextComponent;
   late final TextPaint scoreTextPaint;
+
+  // Seviye sistemi değişkenleri
+  int currentLevel = 1; // Mevcut oyun seviyesi
+  int linesClearedTotal =
+      0; // Oyun başından beri temizlenen toplam satır sayısı
+  int linesPerLevel = 10; // Seviye atlamak için gereken satır sayısı
+  late TextComponent levelTextComponent; // Seviye gösterge bileşeni
 
   // Game Over UI için
   late TextComponent gameOverTextComponent;
@@ -101,6 +109,20 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     );
     add(scoreTextComponent); // Component'i oyuna ekle
     print("Score display added.");
+
+    // Seviye göstergesini oluştur ve ekle
+    levelTextComponent = TextComponent(
+      text: 'Level: $currentLevel',
+      textRenderer: scoreTextPaint,
+      position: Vector2(scoreTextComponent.position.x,
+          scoreTextComponent.position.y + 30), // Skorun altına
+      anchor: Anchor.topLeft,
+    );
+    add(levelTextComponent);
+    print("Level display added.");
+
+    // Başlangıç düşme aralığını seviyeye göre ayarla
+    fallInterval = calculateFallIntervalForLevel(currentLevel);
 
     // Önizleme component'ini oluştur
     final previewAreaSize = defaultCellSize * 4;
@@ -556,6 +578,8 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   void clearAndShiftLines(List<int> linesToClear) {
     // Temizlenecek satırları küçükten büyüğe sırala (kaydırmanın doğru çalışması için önemli)
     linesToClear.sort();
+    final int numLinesCleared =
+        linesToClear.length; // Bu adımda temizlenen satır sayısı
 
     // Temizlenecek her satır için işlem yap
     for (int clearedY in linesToClear) {
@@ -574,6 +598,17 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         gridData.setCell(x, 0, CellState.empty, null);
       }
     }
+
+    // Toplam temizlenen satır sayısını güncelle
+    linesClearedTotal += numLinesCleared;
+    print("Total lines cleared: $linesClearedTotal");
+
+    // Seviye Atlama Kontrolü
+    // Gerekli satır sayısına ulaşıldı mı? (Döngü ile birden fazla seviye atlanabilir)
+    while (linesClearedTotal >= currentLevel * linesPerLevel) {
+      levelUp();
+    }
+
     // Görsel güncelleme otomatik olarak SettledBlocksComponent.render içinde gerçekleşmeli
   }
 
@@ -710,6 +745,13 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     score = 0;
     currentState = GameState.playing;
     timeSinceLastFall = 0.0;
+
+    // Seviye Sistemini Sıfırla
+    currentLevel = 1;
+    linesClearedTotal = 0;
+    fallInterval =
+        calculateFallIntervalForLevel(currentLevel); // Hızı Seviye 1'e ayarla
+    updateLevelDisplay(); // UI'ı güncelle
 
     // 2. Grid Verisini Temizle
     gridData.clearGrid();
@@ -965,5 +1007,70 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       isProcessingMatches = false;
       clearComboDisplay();
     }
+  }
+
+  /// Verilen seviyeye göre düşme aralığını (saniye) hesaplar.
+  double calculateFallIntervalForLevel(int level) {
+    // Her seviyede hızı %10 artır (aralığı azalt)
+    double interval = 1.0 * pow(0.9, level - 1); // %10 hızlanma (yaklaşık)
+    return max(0.08, interval); // Minimum 0.08 saniye aralık (ayarlanabilir)
+  }
+
+  /// Seviye atlama işlemlerini yapar
+  void levelUp() {
+    currentLevel++;
+    fallInterval =
+        calculateFallIntervalForLevel(currentLevel); // Yeni hızı hesapla
+    print(
+        "LEVEL UP! Reached Level $currentLevel. Fall interval: $fallInterval");
+    updateLevelDisplay(); // Seviye UI'ını güncelle
+
+    // TODO: Seviye atlama ses efekti çal?
+    // FlameAudio.play('level_up.wav');
+  }
+
+  /// Seviye göstergesini günceller
+  void updateLevelDisplay() {
+    if (isMounted && children.contains(levelTextComponent)) {
+      levelTextComponent.text = 'Level: $currentLevel';
+    }
+  }
+
+  /// Belirtilen pozisyonda bir temizleme parçacık efekti oluşturur ve döndürür.
+  ParticleSystemComponent createClearEffect(
+      Vector2 position, Color particleColor) {
+    final Random rnd = Random();
+    // Rastgele hız ve ömür ile parçacıklar oluştur
+    Particle particle = ComputedParticle(
+      renderer: (canvas, particle) {
+        // Küçülen ve solan bir daire çizelim
+        double progress = particle.progress; // 0.0 -> 1.0
+        double currentSize = defaultCellSize * 0.3 * (1.0 - progress);
+        final paint = Paint()
+          ..color = particleColor.withOpacity(1.0 - progress);
+        canvas.drawCircle(Offset.zero, currentSize, paint);
+      },
+    );
+
+    // Parçacık sistemini oluştur
+    final particleSystem = ParticleSystemComponent(
+      particle: TranslatedParticle(
+        offset: position, // Efektin oyun dünyasındaki pozisyonu
+        lifespan: 0.6, // Parçacıkların toplam ömrü (saniye)
+        child: AcceleratedParticle(
+          // Parçacıkların hareketi
+          speed: Vector2(rnd.nextDouble() * 100 - 50,
+              -rnd.nextDouble() * 150), // Rastgele yukarı ve yanlara hız
+          acceleration: Vector2(0, 200), // Yerçekimi benzeri aşağı ivme
+          child: particle,
+        ),
+      ),
+      // particleCount: 5, // İsteğe bağlı: Aynı anda kaç parçacık olacağı
+    );
+
+    // Efekt bittikten sonra kendini otomatik olarak kaldırmasını sağla
+    particleSystem.add(RemoveEffect(delay: 0.6)); // Lifespan ile aynı süre
+
+    return particleSystem;
   }
 }
