@@ -1,73 +1,64 @@
-Harika ilerleme! Önce tamamlanan işleri işaretleyelim, sonra da sıradaki issue için Copilot prompt'unu hazırlayalım.
+Anladım, "Yapılması Gereken İşler" listesini belirttiğiniz özelliklere odaklanacak şekilde güncelleyelim:
 
-Fietris - Flutter/Flame Yapılacak İşler Listesi (Güncel Durum)
+**Fietris - Flutter/Flame Yapılacak İşler Listesi (Filtrelenmiş)**
 
-🚀 Temel Kurulum ve Altyapı (Flutter/Flame)
+**✅ Tamamlanan İşler**
 
-[✅] [Core] Flutter Projesi Oluşturma: Yeni bir Flutter projesi başlatma.
-[✅] [Core] Flame Entegrasyonu: flame paketini projeye ekleme ve temel FlameGame sınıfını oluşturma.
-[✅] [Core] Temel Oyun Döngüsü: update ve render metotlarının temel yapısını kurma.
-[✅] [Grid] Grid Veri Yapısı: Oyun alanını (gridData) temsil edecek bir 2D liste veya özel sınıf oluşturma. Her hücrenin rengini ve durumunu (boş, dolu, düşen) tutmalı.
-[✅] [Grid] Görsel Grid Çizimi: Oyun alanının sınırlarını ve hücre çizgilerini FlameGame içinde çizme (GridBackground component'i).
-🧱 Blok Mekanikleri (Flame Components)
+* **🚀 Temel Kurulum ve Altyapı (Flutter/Flame)**
+    * `[✅]` **[Core]** Flutter Projesi Oluşturma
+    * `[✅]` **[Core]** Flame Entegrasyonu ve Temel `FlameGame` Kurulumu
+    * `[✅]` **[Core]** Temel Oyun Döngüsü (`update`/`render`)
+    * `[✅]` **[Grid]** Grid Veri Yapısı (`GridData`, `GridCell`, `CellState`)
+    * `[✅]` **[Grid]** Görsel Grid Çizimi (`GridBackground`)
+* **🧱 Blok Mekanikleri (Flame Components)**
+    * `[✅]` **[Gameplay]** Blok Tanımları (`BlockType` enum: şekil, renk)
+    * `[✅]` **[Gameplay]** Blok `Component`'i (`Block`, `RectangleComponent` parçaları)
+    * `[✅]` **[Gameplay]** Blok Oluşturma (`spawnNewBlock`, rastgele tip)
+    * `[✅]` **[Gameplay]** Otomatik Blok Düşme (Zamanlayıcı ile `update`)
+    * `[✅]` **[Gameplay]** Çarpışma Algılama (`checkCollision`: sınırlar, dolu hücreler)
+    * `[✅]` **[Gameplay]** Blok Yerleşimi (`settleBlock`: `GridData` güncelleme, `Block` kaldırma)
+    * `[✅]` **[Gameplay]** Sonraki Blok Göstergesi (Veri: `nextBlockType`)
+* **👆 Oyuncu Etkileşimi (Input)**
+    * `[✅]` **[Input]** Blok Kontrolü (Hareket - Klavye: Sağ/Sol Ok)
+    * `[✅]` **[Input]** Blok Kontrolü (Döndürme - Klavye: Yukarı Ok, basit wall-kick)
+    * `[✅]` **[Input]** Blok Kontrolü (Hızlı Düşürme - Klavye: Soft Drop - Aşağı Ok)
+    * `[✅]` **[Input]** Grid Dokunma Algılama (Match-3 için `TapCallbacks`)
+    * `[✅]` **[Input]** Blok Kontrolü (Dokunmatik: Kaydırma - Sağ/Sol/Aşağı, Çift Dokunma - Döndürme)
+* **💥 Patlatma ve Zincirleme Reaksiyonlar (Match-3)**
+    * `[✅]` **[Gameplay]** Eşleşme Bulma (`findMatches` - BFS)
+    * `[✅]` **[Gameplay]** Eşleşme Temizleme (`clearMatches` - `GridData` güncelleme)
+    * `[✅]` **[Gameplay]** Yerçekimi Uygulama (Match-3 `applyGravity` - `GridData` güncelleme)
+    * `[✅]` **[Gameplay]** Kombo Mantığı (Match-3 `checkForCombos`, `isProcessingMatches`, zincirleme reaksiyon)
+* **⭐ Özel Fietris Mekanikleri**
+    * `[✅]` **[Gameplay]** "Mükemmel Uyum" (Fit) Bonusu (`checkForFitBonus` mantığı `settleBlock` içinde)
+* **💯 Skorlama ve Oyun Durumu**
+    * `[✅]` **[Scoring]** Temel Puanlama (Satır Temizleme)
+    * `[✅]` **[Scoring]** Temel Puanlama (Soft Drop bonusu)
+    * `[✅]` **[Scoring]** Grup Patlatma ve Kombo Puanları (Match-3)
+    * `[✅]` **[Game Logic]** Oyun Sonu (Tepeye Ulaşma - Spawn kontrolü)
+    * `[✅]` **[Game Logic]** Oyun Durumu Yönetimi (`GameState` enum)
+    * `[✅]` **[Game Logic]** Oyunu Yeniden Başlatma (Klavye 'R' tuşu)
+    * `[✅]` **[Game Logic]** Seviye Sistemi (Satır temizlemeye göre seviye artışı, hızlanma)
+* **✨ UI, Görsel ve Ses Efektleri**
+    * `[✅]` **[UI]** Skor Gösterimi (`TextComponent`)
+    * `[✅]` **[UI]** Kombo Göstergesi (`TextComponent`)
+    * `[✅]` **[UI]** Seviye Göstergesi (`TextComponent`)
+    * `[✅]` **[UI]** Sonraki Blok Göstergesi (Görsel: `NextBlockPreview` component'i)
+    * `[✅]` **[UI]** Game Over Ekranı (Basit `TextComponent`)
+    * `[✅]` **[VFX]** Yerleşmiş Blok Görseli (`SettledBlocksDisplay`)
+    * `[✅]` **[VFX]** Satır ve Eşleşme Temizleme Efektleri (Basit `ParticleSystemComponent`)
+---
 
-[✅] [Gameplay] Blok Tanımları: Tetromino benzeri şekilleri (klasik) ve renkleri tanımlayan BlockType enum'ı oluşturma.
-[✅] [Gameplay] Blok Component'i: Düşen bloğu temsil edecek Block component'ini (PositionComponent tabanlı) oluşturma. Şekli, rengi ve parçalarını (kare RectangleComponent'ler) içermeli.
-[✅] [Gameplay] Blok Oluşturma (spawnNewBlock): Rastgele bir blok türünü seçip, başlangıç pozisyonunda Block component'i olarak oyun sahnesine ekleme.
-[✅] [Gameplay] Otomatik Blok Düşme: Block component'ini FietrisGame.update içinde düzenli aralıklarla aşağı hareket ettirme.
-[✅] [Gameplay] Çarpışma Algılama (checkCollision): Düşen bloğun oyun alanı sınırlarına ve yerleşmiş bloklara (GridData içindeki) çarpıp çarpmadığını kontrol etme.
-[✅] [Gameplay] Blok Yerleşimi (settleBlock): Düşemeyen Block component'inin parçalarını GridData'ya kalıcı olarak işleme, düşen Block component'ini sahneden kaldırma ve yenisini çağırma.
-[✅] [Gameplay] Sonraki Blok Göstergesi (Veri): Bir sonraki düşecek bloğun tipini (nextBlockType) tutma ve spawnNewBlock'ta yönetme.
-👆 Oyuncu Etkileşimi (Flame Input / Flutter Gestures)
+**📝 Yapılması Gereken İşler (Filtrelenmiş)**
 
-[✅] [Input] Blok Kontrolü (Hareket - Klavye): Düşen bloğu klavye ok tuşları ile sağa/sola hareket ettirme (çarpışma kontrollü).
-[✅] [Input] Blok Kontrolü (Döndürme - Klavye): Blok döndürme mekanizması (Yukarı Ok tuşu), temel wall-kick ve çarpışma kontrolü ile.
-[✅] [Input] Blok Kontrolü (Hızlı Düşürme - Klavye): Blok hızla aşağı indirme (Soft Drop - Aşağı Ok tuşu).
-[✅] [Input] Grid Dokunma Algılama: Oyun alanındaki yerleşmiş karelere (filled state) dokunmayı algılama (TapCallbacks kullanarak) ve ilgili grid koordinatlarını bulma.
-💥 Patlatma ve Zincirleme Reaksiyonlar
-
-[✅] [Gameplay] Eşleşme Bulma (findMatches): Dokunulan kareyle aynı renkteki, birbirine bitişik (yatay/dikey) 3 veya daha fazla kare grubunu BFS ile bulma.
-[ ] [Gameplay] Eşleşme Temizleme (clearMatches): Bulunan gruptaki kareleri GridData'dan kaldırma.
-[ ] [Gameplay] Yerçekimi Uygulama (Match-3 applyGravity): Temizlenen karelerin üzerindeki karelerin GridData'da ve görsel olarak aşağı düşmesini sağlama (Match-3 mekaniği için).
-[ ] [Gameplay] Kombo Mantığı (Match-3 checkForCombos): Yerçekimi sonrası otomatik olarak oluşan yeni 3+ gruplarını algılama, clearMatches ve applyGravity'yi tekrar tetikleme.
-💯 Skorlama ve Oyun Durumu
-
-[✅] [Scoring] Temel Puanlama (Satır): Tamamlanan satır sayısına göre puan verme.
-[✅] [Scoring] Temel Puanlama (Soft Drop): Soft drop ile puan kazanma (opsiyonel).
-[ ] [Scoring] Grup Patlatma Puanları (Match-3): Patlatılan grubun boyutuna göre puan verme.
-[ ] [Scoring] Kombo Puanları (Match-3): Zincirleme reaksiyonlar için çarpan uygulama.
-[ ] [Scoring] "Fit" Bonusu: settleBlock içinde mükemmel uyum kontrolü ve bonus puan.
-[ ] [Game Logic] Zaman Sayacı: Geri sayım sayacı uygulama.
-[✅] [Game Logic] Oyun Sonu (Tepeye Ulaşma): Yeni blok spawn edilemiyorsa oyunu bitirme.
-[ ] [Game Logic] Oyun Sonu (Zaman): Zaman sayacı sıfıra ulaştığında oyunu bitirme.
-[ ] [Game Logic] Kazanma Koşulu: Hedef skora ulaşma.
-[✅] [Game Logic] Oyun Durumu Yönetimi: GameState enum'ı (playing, gameOver) ve kontrolü.
-[✅] [Game Logic] Oyunu Yeniden Başlatma: Oyun bittiğinde 'R' tuşu ile oyunu sıfırlama.
-✨ UI, Görsel ve Ses Efektleri
-
-[✅] [UI] Skor Gösterimi: Mevcut skoru ekranda gösterme (TextComponent).
-[ ] [UI] Zaman Göstergesi: Kalan süreyi ekranda gösterme.
-[✅] [UI] Sonraki Blok Göstergesi (Görsel): Sonraki bloğun küçük bir önizlemesini ekranda gösterme (NextBlockPreview component'i).
-[ ] [UI] Kombo Göstergesi (Match-3): Aktif kombo çarpanını ekranda gösterme.
-[ ] [UI] "Fit Bonusu" Bildirimi: Mükemmel uyum sağlandığında görsel bildirim.
-[ ] [UI] Kontrol Butonları (Ekran): Dokunmatik butonlar (ButtonComponent veya Flutter Overlay).
-[✅] [UI] Game Over Ekranı (Basit): Oyun bittiğinde "Game Over" ve skoru gösteren TextComponent.
-[ ] [UI] Game Over Ekranı (Gelişmiş): Flutter Overlay ile daha detaylı oyun sonu ekranı ve yeniden başlatma butonu.
-[ ] [UI] Başlat/Duraklat Butonu: Oyunu duraklatıp devam ettirme.
-[✅] [VFX] Yerleşmiş Blok Görseli: GridData'daki filled hücreleri SettledBlocksDisplay ile çizme.
-[ ] [VFX] Patlama Efektleri (Match-3): Kareler patladığında parçacık efektleri veya animasyonlar.
-[ ] [VFX] Satır Tamamlama Efekti: Satırlar temizlendiğinde görsel efekt.
-[ ] [VFX] Kombo Efektleri: Kombolar arttıkça daha belirgin görsel efektler.
-[ ] [VFX] Blok Yerleşme/Fit Efekti: Blok yerine oturduğunda/fit olduğunda görsel efekt.
-[ ] [SFX/BGM] Ses Efektleri ve Müzik: Oyun içi sesler ve arka plan müziği ekleme (flame_audio).
-⚡ Güçlendirmeler (Power-ups)
-
-[ ] [Feature] Enerji Barı (UI ve Mantık): Güçlendirmeleri kazanmak için enerji barı ve dolum mantığı.
-[ ] [Feature] Güçlendirme Aktivasyonu: Enerji barı dolduğunda güçlendirme tetiklenmesi.
-[ ] [Feature] Güçlendirme: Bomba, Renk Silici, Zaman Dondurucu, Yer Değiştirici vb. uygulama.
-🐞 Hata Ayıklama ve İyileştirmeler
-
-[ ] [Input] Dokunmatik Kontroller: Blokları hareket ettirme, döndürme, düşürme için dokunmatik jestler.
-[ ] [Optimization] Performans İyileştirmeleri: Özellikle SettledBlocksDisplay render optimizasyonu.
-[ ] [Refactor] Kod Kalitesi: Kod tekrarını azaltma, okunabilirliği artırma.
-[ ] [Balance] Oyun Dengesi: Puanlama, hız, zorluk ayarları.
+* **⚡ Güçlendirmeler (Power-ups)**
+    * `[ ]` **[Feature]** Enerji Barı (UI ve dolum mantığı - örn: kombo, temizlenen blok sayısı ile).
+    * `[ ]` **[Feature]** Güçlendirme Aktivasyonu (Enerji barı dolunca veya rastgele).
+    * `[ ]` **[Feature]** Güçlendirme Efektleri Kodlama (Bomba, Renk Silici, Zaman Dondurucu vb.).
+* **🎮 Oyun Modları ve Mantığı**
+    * `[ ]` **[Game Logic]** Zaman Sayacı ve Süreye Dayalı Oyun Modu.
+    * `[ ]` **[Game Logic]** Hedef Skoruna Dayalı Kazanma Koşulu.
+    * `[ ]` **[Game Logic]** Duraklatma (Pause) ve Devam Etme (Resume) Mekanizması.
+* **👆 Alternatif Girdiler**
+    * `[ ]` **[Input]** Ekran Üstü Kontrol Butonları (D-Pad, Döndürme, Hızlı İndirme - `ButtonComponent` veya Flutter Overlay).
+    * `[ ]` **[Input]** Hard Drop (Anında İndirme) mekaniği (Klavye -örn: Boşluk, Dokunmatik - örn: Hızlı Swipe).
