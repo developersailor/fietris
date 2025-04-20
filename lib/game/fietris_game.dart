@@ -569,7 +569,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         // y-1 satırındaki hücreleri y satırına kopyala
         for (var x = 0; x < gridWidth; x++) {
           final cellAbove = gridData.getCell(x, y - 1);
-          gridData.setCell(x, y, cellAbove.state, cellAbove.color);
+          gridData.setCell(x, writeIndex, cellAbove.state, cellAbove.color);
         }
       }
 
@@ -1083,7 +1083,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       var emptyCellCount = 0;
 
       // Mevcut 3 satırlık alanı (y, y+1, y+2) tara
-      for (var checkY = y; checkY < y + 3 && y < gridHeight; checkY++) {
+      for (var checkY = y; y < y + 3 && y < gridHeight; checkY++) {
         for (var x = 0; x < gridWidth; x++) {
           if (gridData.getCell(x, checkY).state == CellState.empty) {
             emptyCellCount++;
