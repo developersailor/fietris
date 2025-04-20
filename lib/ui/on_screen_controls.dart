@@ -49,6 +49,15 @@ class OnScreenControlsWidget extends StatelessWidget { // Oyuna referans
                 ],
               ),
             ),
+
+            // Pause Butonu (Sol Üst Köşe)
+            Align(
+              alignment: Alignment.topLeft,
+              child: ControlButton(
+                icon: Icons.pause,
+                onPressed: game.togglePause,
+              ),
+            ),
           ],
         ),
       ),
