@@ -20,7 +20,7 @@ import 'package:flutter/services.dart'; // LogicalKeyboardKey için
 import 'package:flutter/widgets.dart'; // KeyEventResult için
 
 // Oyun durumları
-enum GameState { playing, gameOver }
+enum GameState { playing, gameOver, paused }
 
 class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   late GridData gridData;
@@ -229,24 +229,19 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       final targetGridX = startX + pieceOffset.x.toInt();
       final targetGridY = startY + pieceOffset.y.toInt();
 
-      // Sadece grid içindeki ve görünür (y>=0) hücreleri kontrol et
-      // Y<0 olması normaldir, bazı blokların başlangıçta
-      // bir kısmı ekran dışında olabilir
-      if (targetGridY >= 0) {
-        // Grid içinde mi (X ekseni kontrolü)
-        if (targetGridX < 0 || targetGridX >= gridWidth) {
-          // X ekseni dışında - bu normal değil, blok oluşturulamaz
-          gameOver();
-          return;
-        }
+      // Grid içinde mi (X ekseni kontrolü)
+      if (targetGridX < 0 || targetGridX >= gridWidth) {
+        // X ekseni dışında - bu normal değil, blok oluşturulamaz
+        gameOver();
+        return;
+      }
 
-        // Bu görünür hücre dolu mu?
-        if (gridData.getCell(targetGridX, targetGridY).state ==
-            CellState.filled) {
-          // Bu hücre zaten doluysa oyun biter
-          gameOver();
-          return;
-        }
+      // Bu hücre dolu mu?
+      if (gridData.getCell(targetGridX, targetGridY).state ==
+          CellState.filled) {
+        // Bu hücre zaten doluysa oyun biter
+        gameOver();
+        return;
       }
     }
     // ===============================
@@ -607,7 +602,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       return KeyEventResult.ignored;
     }
 
-    // Oyun bittiyse SADECE yeniden başlatma tuşunu dinle
+    // Oyun bittiğindeyse SADECE yeniden başlatma tuşunu dinle
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyR) {
       restartGame(); // Yeniden başlatma metodunu çağır
       return KeyEventResult.handled;
@@ -720,6 +715,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       // Component ekli mi kontrol et
       gameOverTextComponent.text = 'GAME OVER\nScore: $score';
     }
+
+    // Oyun bitti ekranını göster
+    showGameOverScreen();
   }
 
   /// Oyunu yeniden başlatır, tüm değişkenleri ve grid'i sıfırlar
@@ -1085,7 +1083,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       var emptyCellCount = 0;
 
       // Mevcut 3 satırlık alanı (y, y+1, y+2) tara
-      for (var checkY = y; checkY < y + 3; checkY++) {
+      for (var checkY = y; checkY < y + 3 && y < gridHeight; checkY++) {
         for (var x = 0; x < gridWidth; x++) {
           if (gridData.getCell(x, checkY).state == CellState.empty) {
             emptyCellCount++;
@@ -1148,5 +1146,37 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     if (currentBlock == null) {
       spawnNewBlock();
     }
+  }
+
+  /// Oyunu duraklatır ve duraklatma ekranını gösterir
+  void pauseGame() {
+    if (currentState == GameState.playing) {
+      currentState = GameState.paused;
+      // Duraklatma ekranını göster
+      overlays.add('pauseScreen');
+    }
+  }
+
+  /// Oyunu devam ettirir ve duraklatma ekranını kapatır
+  void resumeGame() {
+    if (currentState == GameState.paused) {
+      currentState = GameState.playing;
+      // Duraklatma ekranını kapat
+      overlays.remove('pauseScreen');
+    }
+  }
+
+  /// Oyun bittiğinde oyun bitti ekranını gösterir
+  void showGameOverScreen() {
+    if (currentState == GameState.gameOver) {
+      // Oyun bitti ekranını göster
+      overlays.add('gameOverScreen');
+    }
+  }
+
+  /// Skor ekranını gösterir
+  void showScoreboardScreen() {
+    // Skor ekranını göster
+    overlays.add('scoreboardScreen');
   }
 }
