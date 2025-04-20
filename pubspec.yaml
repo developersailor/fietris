@@ -8,14 +8,14 @@ environment:
 
 dependencies:
   audioplayers: ^6.1.0
-  bloc: ^8.1.4
+  bloc: ^9.0.0
   equatable: ^2.0.5
   flame: ^1.20.0
   flame_audio: ^2.10.4
   flame_behaviors: ^1.2.0
   flutter:
     sdk: flutter
-  flutter_bloc: ^8.1.6
+  flutter_bloc: ^9.1.0
   flutter_localizations:
     sdk: flutter
   google_fonts: ^6.2.1
@@ -23,7 +23,7 @@ dependencies:
   vector_math: ^2.1.4
 
 dev_dependencies:
-  bloc_test: ^9.1.7
+  bloc_test: ^10.0.0
   flame_test: ^1.17.1
   flutter_test:
     sdk: flutter
