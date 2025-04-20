@@ -53,12 +53,11 @@ class GridData {
 
   // Grid'i tamamen temizle (tüm hücreleri boş yap)
   void clearGrid() {
-    for (int x = 0; x < gridWidth; x++) {
-      for (int y = 0; y < gridHeight; y++) {
+    for (var x = 0; x < gridWidth; x++) {
+      for (var y = 0; y < gridHeight; y++) {
         _grid[x][y].state = CellState.empty;
         _grid[x][y].color = null;
       }
     }
-    print("Grid data cleared.");
   }
 }

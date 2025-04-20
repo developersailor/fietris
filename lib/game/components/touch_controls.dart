@@ -1,13 +1,13 @@
+import 'package:fietris/game/fietris_game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
-import 'package:fietris/game/fietris_game.dart';
 
 /// Mobil cihazlar için ekranda dokunmatik kontroller sağlayan component
 class TouchControls extends PositionComponent {
-  final FietrisGame game;
 
   TouchControls({required this.game});
+  final FietrisGame game;
 
   @override
   Future<void> onLoad() async {
