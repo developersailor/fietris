@@ -569,7 +569,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         // y-1 satırındaki hücreleri y satırına kopyala
         for (var x = 0; x < gridWidth; x++) {
           final cellAbove = gridData.getCell(x, y - 1);
-          gridData.setCell(x, writeIndex, cellAbove.state, cellAbove.color);
+          gridData.setCell(x, y, cellAbove.state, cellAbove.color);
         }
       }
 
