@@ -13,20 +13,23 @@ class PauseScreen extends StatelessWidget {
         children: [
           const Text(
             'Paused',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {
-              game.togglePause();
-            },
+            onPressed: game.togglePause,
             child: const Text('Resume'),
           ),
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () {
-              game.restartGame();
-              game.togglePause();
+              game
+                ..restartGame()
+                ..togglePause();
             },
             child: const Text('Restart'),
           ),
