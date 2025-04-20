@@ -20,7 +20,7 @@ import 'package:flutter/services.dart'; // LogicalKeyboardKey için
 import 'package:flutter/widgets.dart'; // KeyEventResult için
 
 // Oyun durumları
-enum GameState { playing, gameOver }
+enum GameState { playing, gameOver, paused }
 
 class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   late GridData gridData;
@@ -275,6 +275,10 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   @override
   void update(double dt) {
     if (currentState == GameState.gameOver || isProcessingMatches) return;
+
+    if (currentState == GameState.paused) {
+      return; // Oyun duraklatıldığında güncellemeleri atla
+    }
 
     super.update(dt); // Önce üst sınıfın update'ini çağır
 
@@ -757,6 +761,16 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     spawnNewBlock();
   }
 
+  void togglePause() {
+    if (currentState == GameState.paused) {
+      currentState = GameState.playing;
+      overlays.remove('pauseScreen');
+    } else if (currentState == GameState.playing) {
+      currentState = GameState.paused;
+      overlays.add('pauseScreen');
+    }
+  }
+
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
@@ -1085,7 +1099,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       var emptyCellCount = 0;
 
       // Mevcut 3 satırlık alanı (y, y+1, y+2) tara
-      for (var checkY = y; checkY < y + 3; checkY++) {
+      for (var checkY = y; checkY < y + 3 && y < gridHeight; checkY++) {
         for (var x = 0; x < gridWidth; x++) {
           if (gridData.getCell(x, checkY).state == CellState.empty) {
             emptyCellCount++;
