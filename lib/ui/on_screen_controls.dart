@@ -1,17 +1,17 @@
+import 'package:fietris/game/fietris_game.dart'; // FietrisGame'e erişim için
 import 'package:flutter/material.dart';
-import '../game/fietris_game.dart'; // FietrisGame'e erişim için
 
-class OnScreenControlsWidget extends StatelessWidget {
-  final FietrisGame game; // Oyuna referans
+class OnScreenControlsWidget extends StatelessWidget { // Oyuna referans
 
-  const OnScreenControlsWidget({super.key, required this.game});
+  const OnScreenControlsWidget({required this.game, super.key});
+  final FietrisGame game;
 
   @override
   Widget build(BuildContext context) {
     // SafeArea kullanarak sistem çubuklarından kaçın
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16.0), // Kenarlardan boşluk
+        padding: const EdgeInsets.all(16), // Kenarlardan boşluk
         child: Stack(
           // Butonları serbestçe konumlandırmak için Stack
           children: [
@@ -22,10 +22,10 @@ class OnScreenControlsWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ControlButton(
-                      icon: Icons.arrow_left, onPressed: game.moveBlockLeft),
+                      icon: Icons.arrow_left, onPressed: game.moveBlockLeft,),
                   const SizedBox(width: 20), // Butonlar arası boşluk
                   ControlButton(
-                      icon: Icons.arrow_right, onPressed: game.moveBlockRight),
+                      icon: Icons.arrow_right, onPressed: game.moveBlockRight,),
                 ],
               ),
             ),
@@ -37,15 +37,15 @@ class OnScreenControlsWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ControlButton(
-                      icon: Icons.rotate_right, onPressed: game.rotateBlock),
+                      icon: Icons.rotate_right, onPressed: game.rotateBlock,),
                   const SizedBox(width: 20),
                   ControlButton(
                       icon: Icons.arrow_downward,
-                      onPressed: game.softDropBlock),
+                      onPressed: game.softDropBlock,),
                   const SizedBox(width: 20),
                   ControlButton(
                       icon: Icons.vertical_align_bottom,
-                      onPressed: game.performHardDrop)
+                      onPressed: game.performHardDrop,),
                 ],
               ),
             ),
@@ -58,10 +58,10 @@ class OnScreenControlsWidget extends StatelessWidget {
 
 // Tekrar kullanılabilir buton widget'ı
 class ControlButton extends StatelessWidget {
+
+  const ControlButton({required this.icon, required this.onPressed, super.key});
   final IconData icon;
   final VoidCallback onPressed;
-
-  const ControlButton({super.key, required this.icon, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +72,12 @@ class ControlButton extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           child: Container(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.grey[800],
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.white, size: 30.0),
+            child: Icon(icon, color: Colors.white, size: 30),
           ),
         ),
       ),

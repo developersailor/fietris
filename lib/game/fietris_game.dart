@@ -5,18 +5,17 @@ import 'package:fietris/game/blocks/block.dart';
 import 'package:fietris/game/blocks/block_type.dart';
 import 'package:fietris/game/components/next_block_preview.dart';
 import 'package:fietris/game/components/settled_blocks_component.dart';
-import 'package:fietris/game/components/touch_controls.dart';
 import 'package:fietris/game/grid_background.dart';
 import 'package:fietris/game/grid_config.dart';
 import 'package:fietris/game/grid_data.dart';
 import 'package:flame/components.dart'
     hide Block; // TextComponent için, Block hariç
-import 'package:flame/effects.dart'; // RemoveEffect için
+// RemoveEffect için
 import 'package:flame/events.dart'; // KeyboardEvents için
 import 'package:flame/game.dart';
-import 'package:flame/particles.dart'; // Particle, ParticleSystemComponent için
+// Particle, ParticleSystemComponent için
 import 'package:flame/text.dart'; // TextPaint için
-import 'package:flutter/material.dart' show Colors, TextStyle, Shadow, Offset;
+import 'package:flutter/material.dart' show Colors, Offset, Shadow, TextStyle;
 import 'package:flutter/services.dart'; // LogicalKeyboardKey için
 import 'package:flutter/widgets.dart'; // KeyEventResult için
 
@@ -49,8 +48,8 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   // Oyun durumu
   GameState currentState = GameState.playing; // Başlangıç durumu
 
-  double fallInterval = 1.0; // Her bir adım için saniye cinsinden süre
-  double timeSinceLastFall = 0.0; // Son düşme adımından beri geçen süre
+  double fallInterval = 1; // Her bir adım için saniye cinsinden süre
+  double timeSinceLastFall = 0; // Son düşme adımından beri geçen süre
 
   bool isProcessingMatches = false; // Eşleşme/Yerçekimi zinciri işleniyor mu?
   int comboMultiplier = 0; // Mevcut kombo çarpanı/seviyesi
@@ -73,7 +72,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       position: gridOrigin,
     );
     add(gridBg);
-    print('GridBackground added!');
 
     // Yerleşen blokları gösteren component'i ekle
     settledBlocksComponent = SettledBlocksComponent(
@@ -81,20 +79,20 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       position: gridOrigin,
     );
     add(settledBlocksComponent);
-    print('SettledBlocksComponent added!');
 
     // Skor metni stilini tanımla
     scoreTextPaint = TextPaint(
       style: const TextStyle(
-        fontSize: 24.0,
+        fontSize: 24,
         color: Colors.white,
         fontWeight: FontWeight.bold,
         shadows: [
           // Okunabilirliği artırmak için gölge
           Shadow(
-              blurRadius: 1.0,
-              color: Color.fromRGBO(0, 0, 0, 0.5),
-              offset: Offset(1, 1)),
+            blurRadius: 1,
+            color: Color.fromRGBO(0, 0, 0, 0.5),
+            offset: Offset(1, 1),
+          ),
         ],
       ),
     );
@@ -104,55 +102,61 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       text: 'Score: $score', // Başlangıç skoru
       textRenderer: scoreTextPaint,
       position: Vector2(
-          gridOrigin.x, gridOrigin.y - 30), // Grid'in biraz üstüne konumlandır
+        gridOrigin.x,
+        gridOrigin.y - 30,
+      ), // Grid'in biraz üstüne konumlandır
       anchor: Anchor.topLeft,
     );
     add(scoreTextComponent); // Component'i oyuna ekle
-    print("Score display added.");
 
     // Seviye göstergesini oluştur ve ekle
     levelTextComponent = TextComponent(
       text: 'Level: $currentLevel',
       textRenderer: scoreTextPaint,
-      position: Vector2(scoreTextComponent.position.x,
-          scoreTextComponent.position.y + 30), // Skorun altına
+      position: Vector2(
+        scoreTextComponent.position.x,
+        scoreTextComponent.position.y + 30,
+      ), // Skorun altına
       anchor: Anchor.topLeft,
     );
     add(levelTextComponent);
-    print("Level display added.");
 
     // Başlangıç düşme aralığını seviyeye göre ayarla
     fallInterval = calculateFallIntervalForLevel(currentLevel);
 
     // Önizleme component'ini oluştur
-    final previewAreaSize = defaultCellSize * 4;
+    const previewAreaSize = defaultCellSize * 4;
     nextBlockPreviewComponent = NextBlockPreview(
       areaSize: previewAreaSize,
       mainCellSize: defaultCellSize,
       position: Vector2(
-          scoreTextComponent.position.x + scoreTextComponent.width + 20,
-          scoreTextComponent.position.y),
+        scoreTextComponent.position.x + scoreTextComponent.width + 20,
+        scoreTextComponent.position.y,
+      ),
     );
     add(nextBlockPreviewComponent);
 
     // "Next" etiketi ekle
-    add(TextComponent(
-      text: 'Next:',
-      textRenderer: scoreTextPaint,
-      position: nextBlockPreviewComponent.position + Vector2(0, -20),
-    ));
+    add(
+      TextComponent(
+        text: 'Next:',
+        textRenderer: scoreTextPaint,
+        position: nextBlockPreviewComponent.position + Vector2(0, -20),
+      ),
+    );
 
     // Game Over metni stilini tanımla
     final gameOverTextPaint = TextPaint(
       style: const TextStyle(
-        fontSize: 48.0, // Daha büyük font
+        fontSize: 48, // Daha büyük font
         color: Colors.red, // Dikkat çekici renk
         fontWeight: FontWeight.bold,
         shadows: [
           Shadow(
-              blurRadius: 2.0,
-              color: Color.fromRGBO(0, 0, 0, 0.7),
-              offset: Offset(2, 2))
+            blurRadius: 2,
+            color: Color.fromRGBO(0, 0, 0, 0.7),
+            offset: Offset(2, 2),
+          ),
         ],
       ),
     );
@@ -165,19 +169,19 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       anchor: Anchor.center, // Ortaya hizala
     );
     add(gameOverTextComponent); // Oyuna ekle
-    print("GameOver UI added.");
 
     // Kombo metni stilini tanımla
     comboTextPaint = TextPaint(
       style: const TextStyle(
-        fontSize: 32.0,
+        fontSize: 32,
         color: Colors.yellowAccent,
         fontWeight: FontWeight.bold,
         shadows: [
           Shadow(
-              blurRadius: 2.0,
-              color: Color.fromRGBO(0, 0, 0, 0.7),
-              offset: Offset(2, 2))
+            blurRadius: 2,
+            color: Color.fromRGBO(0, 0, 0, 0.7),
+            offset: Offset(2, 2),
+          ),
         ],
       ),
     );
@@ -190,51 +194,48 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       anchor: Anchor.center,
     );
     add(comboTextComponent);
-    print("Combo display added.");
 
-    // NOT: Eski dokunmatik kontroller overlay ile değiştirildiği için devre dışı bırakıldı
+    // NOT: Eski dokunmatik kontroller overlay ile değiştirildiği
+    //      için devre dışı bırakıldı
     // await add(TouchControls(game: this));
     // print('Touch controls added!');
 
     // İlk bloğu oluştur ve ekle
     spawnNewBlock();
-    print("Game loaded, first block spawned.");
   }
 
   void spawnNewBlock() {
-    if (currentState == GameState.gameOver)
+    if (currentState == GameState.gameOver) {
       return; // Zaten bittiyse yeni blok oluşturma
+    }
 
     BlockType typeToSpawn;
 
     if (nextBlockType == null) {
       typeToSpawn = BlockType.getRandom();
       nextBlockType = BlockType.getRandom();
-      print("First spawn: Current=${typeToSpawn}, Next=${nextBlockType}");
     } else {
       typeToSpawn = nextBlockType!;
       nextBlockType = BlockType.getRandom();
-      print("Spawning ${typeToSpawn}, Next is now ${nextBlockType}");
     }
 
-    int startX = gridWidth ~/ 2;
-    int startY = 0;
+    const startX = gridWidth ~/ 2;
+    const startY = 0;
 
     // === DÜZELTME: Spawn Alanı Kontrolü ===
     // Blok oluşturmadan önce, yerleşeceği grid hücreleri dolu mu diye bak
-    for (var pieceOffset in typeToSpawn.shape) {
+    for (final pieceOffset in typeToSpawn.shape) {
       // Parçanın potansiyel grid koordinatı (spawn pozisyonuna göre)
       final targetGridX = startX + pieceOffset.x.toInt();
       final targetGridY = startY + pieceOffset.y.toInt();
 
       // Sadece grid içindeki ve görünür (y>=0) hücreleri kontrol et
-      // Y<0 olması normaldir, bazı blokların başlangıçta bir kısmı ekran dışında olabilir
+      // Y<0 olması normaldir, bazı blokların başlangıçta
+      // bir kısmı ekran dışında olabilir
       if (targetGridY >= 0) {
         // Grid içinde mi (X ekseni kontrolü)
         if (targetGridX < 0 || targetGridX >= gridWidth) {
           // X ekseni dışında - bu normal değil, blok oluşturulamaz
-          print(
-              "GAME OVER: Block would spawn outside horizontal bounds at ($targetGridX, $targetGridY).");
           gameOver();
           return;
         }
@@ -243,8 +244,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         if (gridData.getCell(targetGridX, targetGridY).state ==
             CellState.filled) {
           // Bu hücre zaten doluysa oyun biter
-          print(
-              "GAME OVER: Cannot spawn block due to collision at ($targetGridX, $targetGridY).");
           gameOver();
           return;
         }
@@ -262,7 +261,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       initialPosition: spawnPosition,
     );
     add(currentBlock!);
-    print("Spawned new block: $typeToSpawn at $spawnPosition");
 
     // Önizlemeyi güncelle
     updateNextBlockPreview();
@@ -310,12 +308,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     // Diğer oyun mantığı güncellemeleri (varsa)
   }
 
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas); // Önemli: Üst sınıfın render'ını çağırın
-    // Oyun elemanlarının çizimleri buraya eklenecek
-  }
-
   // Dünya (ekran) pozisyonunu grid koordinatlarına çevirir
   Vector2 worldToGridCoords(Vector2 worldPos) {
     final gridX = ((worldPos.x - gridOrigin.x) / defaultCellSize).floor();
@@ -330,15 +322,21 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     return Vector2(worldX, worldY);
   }
 
-  /// Verilen bloğun, belirtilen `worldPosition`'da herhangi bir yere çarpıp çarpmadığını kontrol eder.
-  /// `blockShapeOffsets`: Bloğun kendi içindeki parçalarının pivot noktasına göre göreceli grid offsetleri.
-  ///                   Eğer null ise, `block.blockType.shape` kullanılır. Dönme kontrolü için override edilebilir.
-  bool checkCollision(Block block, Vector2 worldPosition,
-      {List<Vector2>? blockShapeOffsets}) {
+  /// Verilen bloğun, belirtilen `worldPosition`'da
+  /// herhangi bir yere çarpıp çarpmadığını kontrol eder.
+  /// `blockShapeOffsets`: Bloğun kendi içindeki parçalarının
+  ///  pivot noktasına göre göreceli grid offsetleri.
+  ///                   Eğer null ise, `block.blockType.shape` kullanılır.
+  /// Dönme kontrolü için override edilebilir.
+  bool checkCollision(
+    Block block,
+    Vector2 worldPosition, {
+    List<Vector2>? blockShapeOffsets,
+  }) {
     final shape = blockShapeOffsets ??
         block.blockType.shape; // Kullanılacak şekil offsetleri
 
-    for (var pieceOffset in shape) {
+    for (final pieceOffset in shape) {
       // 1. Parçanın potansiyel mutlak dünya koordinatını hesapla
       final pieceWorldPos = Vector2(
         worldPosition.x + pieceOffset.x * block.cellSize,
@@ -353,19 +351,16 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       // 3. Sınır Kontrolleri
       // Sol Sınır
       if (gridX < 0) {
-        print("Collision: Left Boundary at ($gridX, $gridY)");
         return true;
       }
       // Sağ Sınır
       if (gridX >= gridWidth) {
         // grid_data.dart'tan gelen sabit
-        print("Collision: Right Boundary at ($gridX, $gridY)");
         return true;
       }
       // Alt Sınır
       if (gridY >= gridHeight) {
         // grid_data.dart'tan gelen sabit
-        print("Collision: Bottom Boundary at ($gridX, $gridY)");
         return true;
       }
 
@@ -376,7 +371,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         // Grid verisine eriş (gridData örneği FietrisGame içinde olmalı)
         final cell = gridData.getCell(gridX, gridY);
         if (cell.state == CellState.filled) {
-          print("Collision: Filled Cell at ($gridX, $gridY)");
           return true; // Yerleşmiş bloğa çarptı
         }
       }
@@ -386,21 +380,22 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     return false;
   }
 
-  /// Verilen blok parçası koordinatlarına göre "Mükemmel Uyum" olup olmadığını kontrol eder.
-  /// Kontrol: Altında ve bloğun kapladığı satırlardaki yanlarında boşluk var mı?
+  /// Verilen blok parçası koordinatlarına göre "Mükemmel Uyum" olup
+  /// olmadığını kontrol eder.
+  /// Kontrol: Altında ve bloğun kapladığı satırlardaki
+  /// yanlarında boşluk var mı?
   bool checkForFitBonus(List<Vector2> blockCoords) {
     if (blockCoords.isEmpty) return false;
 
     // 1. Alt Kontrolü: Bloğun her parçasının altı dolu veya sınır olmalı.
-    for (var coord in blockCoords) {
-      final int currentX = coord.x.toInt();
-      final int belowY = coord.y.toInt() + 1;
+    for (final coord in blockCoords) {
+      final currentX = coord.x.toInt();
+      final belowY = coord.y.toInt() + 1;
 
       // Eğer alt sınır içinde mi?
       if (belowY < gridHeight) {
         // Altındaki hücre boş mu?
         if (gridData.getCell(currentX, belowY).state == CellState.empty) {
-          print("Fit check failed: Empty cell below at ($currentX, $belowY)");
           return false; // Altında boşluk var, fit değil.
         }
       }
@@ -409,8 +404,8 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // 2. Yan Kontrolü: Bloğun kapladığı her satır seviyesinde, en soldaki
     //    parçanın solu ve en sağdaki parçanın sağı dolu veya sınır olmalı.
-    Map<int, Map<String, int>> yLevelBounds = {};
-    for (var coord in blockCoords) {
+    final yLevelBounds = <int, Map<String, int>>{};
+    for (final coord in blockCoords) {
       final y = coord.y.toInt();
       final x = coord.x.toInt();
       if (yLevelBounds.containsKey(y)) {
@@ -421,49 +416,45 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       }
     }
 
-    for (int yLevel in yLevelBounds.keys) {
+    for (final yLevel in yLevelBounds.keys) {
       final bounds = yLevelBounds[yLevel]!;
       // Sol kontrolü
-      final int leftX = bounds['minX']! - 1;
+      final leftX = bounds['minX']! - 1;
       if (leftX >= 0) {
         // Sol sınır içinde mi?
         if (gridData.getCell(leftX, yLevel).state == CellState.empty) {
-          print("Fit check failed: Empty cell left at ($leftX, $yLevel)");
           return false; // Solunda boşluk var, fit değil.
         }
       }
       // Sağ kontrolü
-      final int rightX = bounds['maxX']! + 1;
+      final rightX = bounds['maxX']! + 1;
       if (rightX < gridWidth) {
         // Sağ sınır içinde mi?
         if (gridData.getCell(rightX, yLevel).state == CellState.empty) {
-          print("Fit check failed: Empty cell right at ($rightX, $yLevel)");
           return false; // Sağında boşluk var, fit değil.
         }
       }
     }
 
     // Tüm kontrollerden geçtiyse, mükemmel uyum!
-    print("Fit check passed!");
     return true;
   }
 
   /// Düşen bloğu grid'e yerleştirir ve yeni bir blok oluşturur
   void settleBlock() {
     if (currentBlock == null) return;
-    print("Settling block: ${currentBlock!.blockType}");
 
-    final Block settledBlock = currentBlock!;
-    final List<Vector2> currentOffsets = settledBlock.currentShapeOffsets;
-    final Color blockColor = settledBlock.color;
+    final settledBlock = currentBlock!;
+    final currentOffsets = settledBlock.currentShapeOffsets;
+    final blockColor = settledBlock.color;
     final Vector2 blockWorldPos = settledBlock.position;
     final cellSz = settledBlock.cellSize;
 
     // Geçici: Blok parçalarının grid koordinatlarını sakla
-    List<Vector2> blockPieceGridCoords = [];
+    final blockPieceGridCoords = <Vector2>[];
 
     // 1. Grid Verisini Güncelle ve Koordinatları Topla
-    for (var pieceOffset in currentOffsets) {
+    for (final pieceOffset in currentOffsets) {
       final pieceWorldPos = Vector2(
         blockWorldPos.x + pieceOffset.x * cellSz,
         blockWorldPos.y + pieceOffset.y * cellSz,
@@ -475,7 +466,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
       // === YENİ: Tavan Kontrolü ===
       if (gridY < 0) {
-        print("GAME OVER: Block settled partially above ceiling at y=$gridY.");
         gameOver();
         return;
       }
@@ -483,21 +473,14 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
       if (gridData.isWithinBounds(gridX, gridY)) {
         gridData.setCell(gridX, gridY, CellState.filled, blockColor);
-        print(
-            "Updated gridData at ($gridX, $gridY) to filled with $blockColor");
-      } else {
-        print(
-            "Warning: Attempted to settle block piece outside bounds at ($gridX, $gridY)");
-      }
+      } else {}
     }
 
     // === YENİ: Fit Bonusu Kontrolü ===
-    bool isFit = checkForFitBonus(blockPieceGridCoords);
+    final isFit = checkForFitBonus(blockPieceGridCoords);
     if (isFit) {
-      print("FIT BONUS! +$fitBonusPoints points.");
       score += fitBonusPoints;
       updateScoreDisplay();
-      // TODO: Fit Bonusu görsel/ses efekti tetikle
     }
     // ==============================
 
@@ -507,13 +490,12 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     // 3. Mevcut Blok Referansını Temizle
     currentBlock = null;
 
-    // 4. Görsel Güncelleme (artık SettledBlocksComponent tarafından otomatik yapılıyor)
+    // 4. Görsel Güncelleme
+    // (artık SettledBlocksComponent tarafından otomatik yapılıyor)
 
     // === YENİ: Otomatik Alan Kontrolü ===
-    List<int> potentialAutoClearAreas = checkPotentialAutoClearAreas();
+    final potentialAutoClearAreas = checkPotentialAutoClearAreas();
     if (potentialAutoClearAreas.isNotEmpty) {
-      print(
-          "Found potential auto-clear areas starting at rows: $potentialAutoClearAreas. Performing clear...");
       // === YENİ: Otomatik Alan Temizlemeyi Tetikle ===
       performAutoAreaClear(potentialAutoClearAreas);
       return; // Otomatik temizleme yapılırsa diğer kontrolleri atla
@@ -532,13 +514,13 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   /// Tüm sıraları kontrol eder ve tamamlananları temizler
   void checkForCompletedLines() {
-    List<int> completedLines = []; // Tamamlanan satırların Y indekslerini tut
+    final completedLines = <int>[]; // Tamamlanan satırların Y indekslerini tut
 
     // Satırları aşağıdan yukarıya doğru tara (yüksek Y'den düşüğe)
-    for (int y = gridHeight - 1; y >= 0; y--) {
-      bool lineIsComplete = true;
+    for (var y = gridHeight - 1; y >= 0; y--) {
+      var lineIsComplete = true;
       // Satırdaki her hücreyi kontrol et
-      for (int x = 0; x < gridWidth; x++) {
+      for (var x = 0; x < gridWidth; x++) {
         if (gridData.getCell(x, y).state != CellState.filled) {
           lineIsComplete = false; // Bir hücre bile boşsa satır tamamlanmamıştır
           break; // Bu satırın kontrolünü bitir
@@ -547,7 +529,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
       // Eğer satır tamamsa listeye ekle
       if (lineIsComplete) {
-        print("Line complete at y=$y");
         completedLines.add(y);
       }
     }
@@ -555,31 +536,23 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     // Eğer tamamlanan satır(lar) varsa temizleme ve kaydırma işlemini başlat
     if (completedLines.isNotEmpty) {
       // Skorlama - temizlenen satır sayısına göre puan ekle
-      int linesCleared = completedLines.length;
-      int pointsEarned = 0;
+      final linesCleared = completedLines.length;
+      var pointsEarned = 0;
 
       switch (linesCleared) {
         case 1:
           pointsEarned = 100; // Tekli
-          break;
         case 2:
           pointsEarned = 300; // İkili
-          break;
         case 3:
           pointsEarned = 500; // Üçlü
-          break;
         case 4:
           pointsEarned = 800; // Dörtlü (Fietris!)
-          break;
         default: // 4'ten fazla (mümkünse?)
           pointsEarned = 1000;
       }
       score += pointsEarned; // Skoru güncelle
       updateScoreDisplay(); // Skor göstergesini güncelle
-      print(
-          "Lines cleared: $linesCleared, Points: +$pointsEarned, Total Score: $score");
-
-      // TODO: Görsel/Ses Efektleri - Satır temizleme efekti ekle
 
       // Satırları temizle ve üsttekileri kaydır
       clearAndShiftLines(completedLines);
@@ -588,40 +561,41 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   /// Belirli satırları temizler ve üstündeki tüm satırları aşağı kaydırır
   void clearAndShiftLines(List<int> linesToClear) {
-    // Temizlenecek satırları küçükten büyüğe sırala (kaydırmanın doğru çalışması için önemli)
+    // Temizlenecek satırları küçükten büyüğe sırala
+    //(kaydırmanın doğru çalışması için önemli)
     linesToClear.sort();
-    final int numLinesCleared =
+    final numLinesCleared =
         linesToClear.length; // Bu adımda temizlenen satır sayısı
 
     // Temizlenecek her satır için işlem yap
-    for (int clearedY in linesToClear) {
-      print("Clearing line y=$clearedY and shifting above rows down.");
+    for (final clearedY in linesToClear) {
       // Bu temizlenen satırın üzerindeki tüm satırları (aşağıdan yukarıya) işle
-      for (int y = clearedY; y > 0; y--) {
+      for (var y = clearedY; y > 0; y--) {
         // y-1 satırındaki hücreleri y satırına kopyala
-        for (int x = 0; x < gridWidth; x++) {
+        for (var x = 0; x < gridWidth; x++) {
           final cellAbove = gridData.getCell(x, y - 1);
           gridData.setCell(x, y, cellAbove.state, cellAbove.color);
         }
       }
 
       // En üstteki satırı (y=0) temizle, çünkü artık boş olmalı
-      for (int x = 0; x < gridWidth; x++) {
+      for (var x = 0; x < gridWidth; x++) {
         gridData.setCell(x, 0, CellState.empty, null);
       }
     }
 
     // Toplam temizlenen satır sayısını güncelle
     linesClearedTotal += numLinesCleared;
-    print("Total lines cleared: $linesClearedTotal");
 
     // Seviye Atlama Kontrolü
-    // Gerekli satır sayısına ulaşıldı mı? (Döngü ile birden fazla seviye atlanabilir)
+    // Gerekli satır sayısına ulaşıldı mı?
+    //(Döngü ile birden fazla seviye atlanabilir)
     while (linesClearedTotal >= currentLevel * linesPerLevel) {
       levelUp();
     }
 
-    // Görsel güncelleme otomatik olarak SettledBlocksComponent.render içinde gerçekleşmeli
+    // Görsel güncelleme otomatik olarak SettledBlocksComponent.
+    // render içinde gerçekleşmeli
   }
 
   @override
@@ -629,12 +603,12 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    if (currentState == GameState.gameOver || isProcessingMatches)
+    if (currentState == GameState.gameOver || isProcessingMatches) {
       return KeyEventResult.ignored;
+    }
 
     // Oyun bittiyse SADECE yeniden başlatma tuşunu dinle
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyR) {
-      print("Restart key pressed.");
       restartGame(); // Yeniden başlatma metodunu çağır
       return KeyEventResult.handled;
     }
@@ -661,7 +635,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
           currentBlock!.moveLeft();
           return KeyEventResult.handled; // Olay işlendi
         } else {
-          print("Cannot move left due to collision.");
           return KeyEventResult.handled; // Olay işlendi (hareket olmasa bile)
         }
       }
@@ -678,7 +651,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
           currentBlock!.moveRight();
           return KeyEventResult.handled; // Olay işlendi
         } else {
-          print("Cannot move right due to collision.");
           return KeyEventResult.handled; // Olay işlendi (hareket olmasa bile)
         }
       }
@@ -700,24 +672,23 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
           // 3. Çarpışma yoksa:
           // a. Bloğu aşağı hareket ettir
           currentBlock!.moveDown();
-          // b. Otomatik düşme zamanlayıcısını sıfırla (anında çift adım olmasın)
+          // b. Otomatik düşme zamanlayıcısını
+          // sıfırla (anında çift adım olmasın)
           timeSinceLastFall = 0.0;
           // c. Soft drop için küçük bir skor ekle
           score += 1; // Her başarılı soft drop adımı için 1 puan
           updateScoreDisplay(); // Skor göstergesini güncelle
-          print("Soft dropped one step. Score +1: $score");
           return KeyEventResult.handled; // Olay işlendi
         } else {
           // 4. Çarpışma varsa:
           // Hareket ettirme. Normal otomatik düşme mantığı bir sonraki
-          // update döngüsünde çarpışmayı algılayıp yerleştirme işlemini tetikleyecek
-          print("Soft drop blocked by collision below.");
+          // update döngüsünde çarpışmayı algılayıp
+          // yerleştirme işlemini tetikleyecek
           return KeyEventResult.handled; // Olay yine de işlendi (tuşa basıldı)
         }
       }
       // Boşluk Tuşu (Hard Drop)
       else if (event.logicalKey == LogicalKeyboardKey.space) {
-        print("Hard Drop initiated...");
         performHardDrop(); // Hard drop işlemini yap
         return KeyEventResult.handled;
       }
@@ -739,8 +710,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     if (currentState == GameState.gameOver) return;
 
     currentState = GameState.gameOver;
-    print("--- GAME OVER ---");
-    print("Final Score: $score");
 
     // Düşen bloğu hemen kaldırabilirsin (opsiyonel)
     // if (currentBlock != null) remove(currentBlock!);
@@ -751,14 +720,10 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       // Component ekli mi kontrol et
       gameOverTextComponent.text = 'GAME OVER\nScore: $score';
     }
-
-    // TODO: Yeniden başlatma butonu/mantığı ekle
   }
 
   /// Oyunu yeniden başlatır, tüm değişkenleri ve grid'i sıfırlar
   void restartGame() {
-    print("Restarting game...");
-
     // 1. Durum Değişkenlerini Sıfırla
     score = 0;
     currentState = GameState.playing;
@@ -790,8 +755,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // 5. İlk Bloğu Oluştur
     spawnNewBlock();
-
-    print("Game Restarted!");
   }
 
   @override
@@ -800,7 +763,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // Oyun bittiğinde yeniden başlatma kontrolü
     if (currentState == GameState.gameOver) {
-      print("Game over screen tapped. Restarting game...");
       restartGame();
       return;
     }
@@ -809,7 +771,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     // Artık hiçbir şekilde tıklama ile bloklar temizlenmiyor
 
     // Debug için bilgi mesajı
-    print("Tap received but all block clearing via taps is disabled.");
 
     // Bu metot artık sadece bilgi vermek için var, başka bir işlem yapmıyor.
     // Bloklar sadece otomatik temizleme sistemi ile temizlenecek
@@ -819,15 +780,15 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   /// birbirine bağlı (4 yönlü) dolu hücrelerin grid koordinatlarını bulur.
   /// BFS algoritmasını kullanır.
   List<Vector2> findMatches(int startX, int startY, Color targetColor) {
-    final List<Vector2> matchedCells = []; // Bulunan eşleşen hücreler
-    final Queue<Vector2> queue = Queue(); // Ziyaret edilecek hücreler kuyruğu
-    final Set<Vector2> visited =
-        {}; // Ziyaret edilen veya kuyruğa eklenen hücreler
+    final matchedCells = <Vector2>[]; // Bulunan eşleşen hücreler
+    final queue = Queue<Vector2>(); // Ziyaret edilecek hücreler kuyruğu
+    final visited = <Vector2>{}; // Ziyaret edilen veya kuyruğa eklenen hücreler
 
     // Başlangıç hücresi geçerli mi?
     final startCell = gridData.getCell(startX, startY);
     if (startCell.state != CellState.filled || startCell.color != targetColor) {
-      return matchedCells; // Başlangıç hücresi hedefle eşleşmiyorsa boş liste döndür
+      return matchedCells;
+      // Başlangıç hücresi hedefle eşleşmiyorsa boş liste döndür
     }
 
     // BFS Başlangıcı
@@ -844,16 +805,16 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
       final currentY = currentVec.y.toInt();
 
       // Komşuları kontrol et (Yukarı, Aşağı, Sol, Sağ)
-      final List<Vector2> neighborsOffsets = [
+      final neighborsOffsets = <Vector2>[
         Vector2(0, -1), // Yukarı
         Vector2(0, 1), // Aşağı
         Vector2(-1, 0), // Sol
         Vector2(1, 0), // Sağ
       ];
 
-      for (var offset in neighborsOffsets) {
-        final int neighborX = currentX + offset.x.toInt();
-        final int neighborY = currentY + offset.y.toInt();
+      for (final offset in neighborsOffsets) {
+        final neighborX = currentX + offset.x.toInt();
+        final neighborY = currentY + offset.y.toInt();
         final neighborVec = Vector2(neighborX.toDouble(), neighborY.toDouble());
 
         // 1. Sınır Kontrolü
@@ -880,10 +841,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   // Sadece GridData'yı temizler
   void _clearMatchesInternal(List<Vector2> matches) {
     if (matches.isEmpty) return;
-    print("Internal Clearing ${matches.length} blocks...");
-    for (var matchCoord in matches) {
-      final int gridX = matchCoord.x.toInt();
-      final int gridY = matchCoord.y.toInt();
+    for (final matchCoord in matches) {
+      final gridX = matchCoord.x.toInt();
+      final gridY = matchCoord.y.toInt();
       if (gridData.isWithinBounds(gridX, gridY)) {
         gridData.setCell(gridX, gridY, CellState.empty, null);
       }
@@ -892,10 +852,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   // Sadece GridData'ya yerçekimi uygular
   void _applyGravityInternal() {
-    print("Internal Applying gravity...");
-    for (int x = 0; x < gridWidth; x++) {
-      int writeIndex = gridHeight - 1;
-      for (int y = gridHeight - 1; y >= 0; y--) {
+    for (var x = 0; x < gridWidth; x++) {
+      var writeIndex = gridHeight - 1;
+      for (var y = gridHeight - 1; y >= 0; y--) {
         final cell = gridData.getCell(x, y);
         if (cell.state == CellState.filled) {
           if (y != writeIndex) {
@@ -911,21 +870,18 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   /// Tüm grid'i tarar ve 3 veya daha fazla eşleşen blok gruplarını bulur.
   List<Vector2> findNewCombos() {
-    print("Checking for new combos...");
-    final List<Vector2> allNewMatches = [];
-    final Set<Vector2> visitedInCycle = {};
+    final allNewMatches = <Vector2>[];
+    final visitedInCycle = <Vector2>{};
 
-    for (int y = 0; y < gridHeight; y++) {
-      for (int x = 0; x < gridWidth; x++) {
+    for (var y = 0; y < gridHeight; y++) {
+      for (var x = 0; x < gridWidth; x++) {
         final currentVec = Vector2(x.toDouble(), y.toDouble());
         if (!visitedInCycle.contains(currentVec)) {
           final cell = gridData.getCell(x, y);
           if (cell.state == CellState.filled && cell.color != null) {
-            List<Vector2> potentialMatch = findMatches(x, y, cell.color!);
+            final potentialMatch = findMatches(x, y, cell.color!);
             visitedInCycle.addAll(potentialMatch);
             if (potentialMatch.length >= 3) {
-              print(
-                  "Found combo group of ${potentialMatch.length} at ($x, $y)");
               allNewMatches.addAll(potentialMatch);
             }
           } else {
@@ -934,8 +890,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         }
       }
     }
-    print(
-        "Combo check finished. Found ${allNewMatches.length} blocks in new combos.");
     return allNewMatches;
   }
 
@@ -973,26 +927,22 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   /// Verilen eşleşmeleri temizler, yerçekimi uygular ve yeni kombolar arar.
   void processMatchesAndGravity(List<Vector2> matchesToClear) {
     comboMultiplier++;
-    print("Processing Combo x$comboMultiplier");
 
-    int baseScore = calculateMatchScore(matchesToClear.length);
-    int currentStepScore = baseScore * comboMultiplier;
+    final baseScore = calculateMatchScore(matchesToClear.length);
+    final currentStepScore = baseScore * comboMultiplier;
     score += currentStepScore;
     updateScoreDisplay();
-    print(
-        "Scored: base=$baseScore * combo=x$comboMultiplier = $currentStepScore points. Total Score: $score");
 
     updateComboDisplay();
 
     _clearMatchesInternal(matchesToClear);
     _applyGravityInternal();
 
-    List<Vector2> nextMatches = findNewCombos();
+    final nextMatches = findNewCombos();
 
     if (nextMatches.isNotEmpty) {
       processMatchesAndGravity(nextMatches);
     } else {
-      print("Combo chain finished at x$comboMultiplier.");
       isProcessingMatches = false;
       clearComboDisplay();
     }
@@ -1001,7 +951,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   /// Verilen seviyeye göre düşme aralığını (saniye) hesaplar.
   double calculateFallIntervalForLevel(int level) {
     // Her seviyede hızı %10 artır (aralığı azalt)
-    double interval = 1.0 * pow(0.9, level - 1); // %10 hızlanma (yaklaşık)
+    final interval = 1.0 * pow(0.9, level - 1); // %10 hızlanma (yaklaşık)
     return max(0.08, interval); // Minimum 0.08 saniye aralık (ayarlanabilir)
   }
 
@@ -1010,12 +960,7 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     currentLevel++;
     fallInterval =
         calculateFallIntervalForLevel(currentLevel); // Yeni hızı hesapla
-    print(
-        "LEVEL UP! Reached Level $currentLevel. Fall interval: $fallInterval");
     updateLevelDisplay(); // Seviye UI'ını güncelle
-
-    // TODO: Seviye atlama ses efekti çal?
-    // FlameAudio.play('level_up.wav');
   }
 
   /// Seviye göstergesini günceller
@@ -1029,14 +974,14 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   /// geçerli dünya (world) koordinatını döndürür.
   Vector2 predictLandingPosition(Block block) {
     Vector2 currentPos = block.position; // Mevcut pozisyondan başla
-    Vector2 nextPos = currentPos;
+    var nextPos = currentPos;
 
     while (true) {
       // Bir sonraki potansiyel pozisyon (bir hücre aşağı)
       nextPos = currentPos + Vector2(0, block.cellSize);
 
       // Bir sonraki pozisyonda çarpışma var mı?
-      bool collision = checkCollision(block, nextPos);
+      final collision = checkCollision(block, nextPos);
 
       if (collision) {
         // Evet, çarpışma var. Demek ki en son geçerli pozisyon 'currentPos'.
@@ -1050,37 +995,33 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     return currentPos; // Son geçerli pozisyon
   }
 
-  /// Hard Drop işlemini gerçekleştirir - bloğu anında en alttaki uygun konuma indirir
+  /// Hard Drop işlemini gerçekleştir  -
+  /// bloğu anında en alttaki uygun konuma indirir
   void performHardDrop() {
     if (currentBlock == null) return; // Güvenlik kontrolü
 
     // 1. İniş pozisyonunu tahmin et
-    Vector2 landingPosition = predictLandingPosition(currentBlock!);
-    print("Predicted landing position: $landingPosition");
+    final landingPosition = predictLandingPosition(currentBlock!);
 
     // 2. Bloğu anında o pozisyona taşı
     currentBlock!.position = landingPosition;
 
-    // TODO: Hard Drop için skor ekle? (İndiği mesafe * çarpan gibi)
-    // score += calculateHardDropScore(initialY, landingPosition.y);
-
-    // TODO: Hard Drop ses efekti çal?
-    // FlameAudio.play('hard_drop.wav');
-
-    // TODO: Hayalet Parça (Ghost Piece) gösterimi eklenebilir.
-
-    // 3. Bloğu hemen yerleştir (GridData'yı güncelle, satır kontrolü yap, yeni blok oluştur)
+    // 3. Bloğu hemen yerleştir
+    // (GridData'yı güncelle, satır kontrolü yap, yeni blok oluştur)
     settleBlock(); // settleBlock zaten gerekli adımları (SFX dahil) yapmalı
-    print("Hard Drop complete, block settled.");
   }
 
   /// Sol ok butonu için public metot - bloğu sola hareket ettirir
   void moveBlockLeft() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
-        currentBlock == null) return;
+        currentBlock == null) {
+      return;
+    }
     final potentialPosition = Vector2(
-        currentBlock!.position.x - defaultCellSize, currentBlock!.position.y);
+      currentBlock!.position.x - defaultCellSize,
+      currentBlock!.position.y,
+    );
     if (!checkCollision(currentBlock!, potentialPosition)) {
       currentBlock!.moveLeft();
     }
@@ -1090,9 +1031,13 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   void moveBlockRight() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
-        currentBlock == null) return;
+        currentBlock == null) {
+      return;
+    }
     final potentialPosition = Vector2(
-        currentBlock!.position.x + defaultCellSize, currentBlock!.position.y);
+      currentBlock!.position.x + defaultCellSize,
+      currentBlock!.position.y,
+    );
     if (!checkCollision(currentBlock!, potentialPosition)) {
       currentBlock!.moveRight();
     }
@@ -1102,7 +1047,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   void rotateBlock() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
-        currentBlock == null) return;
+        currentBlock == null) {
+      return;
+    }
     currentBlock!.tryRotate();
   }
 
@@ -1110,9 +1057,13 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   void softDropBlock() {
     if (currentState != GameState.playing ||
         isProcessingMatches ||
-        currentBlock == null) return;
+        currentBlock == null) {
+      return;
+    }
     final potentialPosition = Vector2(
-        currentBlock!.position.x, currentBlock!.position.y + defaultCellSize);
+      currentBlock!.position.x,
+      currentBlock!.position.y + defaultCellSize,
+    );
     if (!checkCollision(currentBlock!, potentialPosition)) {
       currentBlock!.moveDown();
       timeSinceLastFall = 0.0; // Otomatik düşmeyi resetle
@@ -1125,16 +1076,17 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
   /// potansiyel otomatik temizleme alanlarını bulan metot.
   /// Bulunan alanların başlangıç Y indekslerini içeren bir liste döndürür.
   List<int> checkPotentialAutoClearAreas() {
-    List<int> candidateAreaStartRows =
-        []; // Koşulu sağlayan alanların başlangıç satırları
+    final candidateAreaStartRows =
+        <int>[]; // Koşulu sağlayan alanların başlangıç satırları
 
-    // Olası başlangıç satırlarını tara (en alttaki 3 satır için y = gridHeight - 3)
-    for (int y = 0; y <= gridHeight - 3; y++) {
-      int emptyCellCount = 0;
+    // Olası başlangıç satırlarını tara
+    // (en alttaki 3 satır için y = gridHeight - 3)
+    for (var y = 0; y <= gridHeight - 3; y++) {
+      var emptyCellCount = 0;
 
       // Mevcut 3 satırlık alanı (y, y+1, y+2) tara
-      for (int checkY = y; checkY < y + 3; checkY++) {
-        for (int x = 0; x < gridWidth; x++) {
+      for (var checkY = y; checkY < y + 3; checkY++) {
+        for (var x = 0; x < gridWidth; x++) {
           if (gridData.getCell(x, checkY).state == CellState.empty) {
             emptyCellCount++;
           }
@@ -1143,8 +1095,6 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
       // Koşulu kontrol et: Boş hücre sayısı 1 ile 5 arasında mı?
       if (emptyCellCount >= 1 && emptyCellCount <= 5) {
-        print(
-            "Alan y=$y'da kriterlere uyuyor (boş hücreler: $emptyCellCount). Aday olarak ekleniyor.");
         candidateAreaStartRows.add(y);
       }
     }
@@ -1159,13 +1109,14 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
     if (startRows.isEmpty) return;
     isProcessingMatches = true;
 
-    // 1. Temizlenecek Benzersiz Hücre Koordinatlarını Topla (Overlap'leri engellemek için Set kullan)
-    final Set<Vector2> cellsToClear = {};
-    for (int startY in startRows) {
+    // 1. Temizlenecek Benzersiz Hücre Koordinatlarını Topla
+    // (Overlap'leri engellemek için Set kullan)
+    final cellsToClear = <Vector2>{};
+    for (final startY in startRows) {
       // İlgili 3 satırı ve tüm sütunları tara
-      for (int y = startY; y < startY + 3 && y < gridHeight; y++) {
+      for (var y = startY; y < startY + 3 && y < gridHeight; y++) {
         // gridHeight sınırını kontrol et
-        for (int x = 0; x < gridWidth; x++) {
+        for (var x = 0; x < gridWidth; x++) {
           // Sadece DOLU hücreleri temizlenecekler listesine ekle
           if (gridData.getCell(x, y).state == CellState.filled) {
             cellsToClear.add(Vector2(x.toDouble(), y.toDouble()));
@@ -1176,36 +1127,19 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // Eğer temizlenecek hücre bulunduysa devam et
     if (cellsToClear.isNotEmpty) {
-      print(
-          "Otomatik olarak ${cellsToClear.length} dolu hücre temizleniyor...");
-
-      // TODO: Otomatik temizleme için özel bir ses efekti çal?
-      // FlameAudio.play('auto_clear.wav');
-
-      // TODO: Otomatik temizleme için görsel efektleri tetikle?
-      // Bu hücrelerin konumlarında parçacık efekti oluşturulabilir.
-      // for (var coord in cellsToClear) {
-      //    add(createClearEffect(gridToWorldCoords(coord.x.toInt(), coord.y.toInt()) + Vector2.all(defaultCellSize / 2), Colors.lightBlue)); // Örnek renk
-      // }
-
       // 2. Toplanan Benzersiz Hücreleri GridData'dan Temizle
-      for (var coord in cellsToClear) {
-        final int gridX = coord.x.toInt();
-        final int gridY = coord.y.toInt();
+      for (final coord in cellsToClear) {
+        final gridX = coord.x.toInt();
+        final gridY = coord.y.toInt();
         // GridData'daki hücreyi temizle
         gridData.setCell(gridX, gridY, CellState.empty, null);
-        print("Otomatik temizlenen hücre: ($gridX, $gridY)");
       }
-
-      // TODO: Skorlama - Temizlenen hücre sayısına göre (cellsToClear.length) puan ekle.
       // score += calculateAutoClearScore(cellsToClear.length);
       // updateScoreDisplay();
 
       // Yerçekimi uygula - Bu temizleme sonrası yerçekimi etkilerini uygula
       _applyGravityInternal();
-    } else {
-      print("Temizleme adayı alanlarda dolu hücre bulunamadı.");
-    }
+    } else {}
 
     // İşlem tamamlandı
     isProcessingMatches = false;

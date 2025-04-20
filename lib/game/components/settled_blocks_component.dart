@@ -1,18 +1,16 @@
+import 'package:fietris/game/fietris_game.dart';
+import 'package:fietris/game/grid_data.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart' hide Colors;
-import '../fietris_game.dart';
-import '../grid_data.dart';
 
 /// Yerleşen blokları görselleştiren component
 class SettledBlocksComponent extends PositionComponent
     with HasGameRef<FietrisGame> {
-  final double cellSize;
-
   SettledBlocksComponent({
     required this.cellSize,
     required Vector2 position,
   }) : super(position: position);
+  final double cellSize;
 
   @override
   Future<void> onLoad() async {
@@ -26,8 +24,8 @@ class SettledBlocksComponent extends PositionComponent
     final gridData = gameRef.gridData;
 
     // Tüm grid hücrelerini kontrol et
-    for (int x = 0; x < gridWidth; x++) {
-      for (int y = 0; y < gridHeight; y++) {
+    for (var x = 0; x < gridWidth; x++) {
+      for (var y = 0; y < gridHeight; y++) {
         final cell = gridData.getCell(x, y);
 
         // Hücre doluysa bloğu çiz

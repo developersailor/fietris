@@ -1,11 +1,8 @@
+import 'package:fietris/game/grid_data.dart'; // GridData ve CellState'i import et
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart'; // Canvas, Rect, Paint, Color için
-import '../grid_data.dart'; // GridData ve CellState'i import et
 
 class SettledBlocksDisplay extends PositionComponent {
-  final GridData gridData;
-  final double cellSize;
-
   SettledBlocksDisplay({
     required this.gridData,
     required this.cellSize,
@@ -15,6 +12,8 @@ class SettledBlocksDisplay extends PositionComponent {
           // Boyutu grid'in piksel boyutuyla eşleştir
           size: Vector2(gridWidth * cellSize, gridHeight * cellSize),
         );
+  final GridData gridData;
+  final double cellSize;
 
   @override
   void render(Canvas canvas) {
@@ -22,8 +21,8 @@ class SettledBlocksDisplay extends PositionComponent {
 
     final paint = Paint(); // Tekrar tekrar oluşturmamak için dışarı alındı
 
-    for (int y = 0; y < gridHeight; y++) {
-      for (int x = 0; x < gridWidth; x++) {
+    for (var y = 0; y < gridHeight; y++) {
+      for (var x = 0; x < gridWidth; x++) {
         final cell = gridData.getCell(x, y);
 
         if (cell.state == CellState.filled && cell.color != null) {
@@ -35,16 +34,17 @@ class SettledBlocksDisplay extends PositionComponent {
             cellSize,
           );
           paint.color = cell.color!; // Rengi ayarla
-          canvas.drawRect(rect, paint);
+          canvas
+            ..drawRect(rect, paint)
 
-          // Kenarlık çiz (opsiyonel - daha belirgin görünmesi için)
-          canvas.drawRect(
-            rect,
-            Paint()
-              ..color = Colors.white.withOpacity(0.3)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.0,
-          );
+            // Kenarlık çiz (opsiyonel - daha belirgin görünmesi için)
+            ..drawRect(
+              rect,
+              Paint()
+                ..color = Colors.white.withAlpha((255 * 0.3).round())
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1.0,
+            );
         }
       }
     }

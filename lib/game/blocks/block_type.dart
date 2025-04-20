@@ -7,43 +7,43 @@ const List<({double x, double y})> _iShapeCoords = [
   (x: 0, y: 0),
   (x: -1, y: 0),
   (x: 1, y: 0),
-  (x: 2, y: 0)
+  (x: 2, y: 0),
 ];
 const List<({double x, double y})> _oShapeCoords = [
   (x: 0, y: 0),
   (x: 1, y: 0),
   (x: 0, y: 1),
-  (x: 1, y: 1)
+  (x: 1, y: 1),
 ];
 const List<({double x, double y})> _tShapeCoords = [
   (x: 0, y: 0),
   (x: -1, y: 0),
   (x: 1, y: 0),
-  (x: 0, y: -1)
+  (x: 0, y: -1),
 ];
 const List<({double x, double y})> _sShapeCoords = [
   (x: 0, y: 0),
   (x: 1, y: 0),
   (x: 0, y: -1),
-  (x: -1, y: -1)
+  (x: -1, y: -1),
 ];
 const List<({double x, double y})> _zShapeCoords = [
   (x: 0, y: 0),
   (x: -1, y: 0),
   (x: 0, y: -1),
-  (x: 1, y: -1)
+  (x: 1, y: -1),
 ];
 const List<({double x, double y})> _jShapeCoords = [
   (x: 0, y: 0),
   (x: -1, y: 0),
   (x: 1, y: 0),
-  (x: 1, y: -1)
+  (x: 1, y: -1),
 ];
 const List<({double x, double y})> _lShapeCoords = [
   (x: 0, y: 0),
   (x: -1, y: 0),
   (x: 1, y: 0),
-  (x: -1, y: -1)
+  (x: -1, y: -1),
 ];
 
 // Helper function to convert coordinate lists to Vector2 lists
@@ -60,14 +60,16 @@ enum BlockType {
   J(shapeCoords: _jShapeCoords, color: Colors.blue),
   L(shapeCoords: _lShapeCoords, color: Colors.orange);
 
+  const BlockType({
+    required List<({double x, double y})> shapeCoords,
+    required this.color,
+  }) : _shapeCoords = shapeCoords;
+
   // Store the const coordinate data
   final List<({double x, double y})> _shapeCoords;
   final Color color;
 
   // Const constructor using the coordinate data
-  const BlockType(
-      {required List<({double x, double y})> shapeCoords, required this.color})
-      : _shapeCoords = shapeCoords;
 
   // Public getter to provide the List<Vector2> shape on demand
   List<Vector2> get shape => _coordsToVectors(_shapeCoords);
