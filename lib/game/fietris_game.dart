@@ -899,8 +899,9 @@ class FietrisGame extends FlameGame with KeyboardEvents, TapCallbacks {
         final cell = gridData.getCell(x, y);
         if (cell.state == CellState.filled) {
           if (y != writeIndex) {
-            gridData.setCell(x, writeIndex, cell.state, cell.color);
-            gridData.setCell(x, y, CellState.empty, null);
+            gridData
+              ..setCell(x, writeIndex, cell.state, cell.color)
+              ..setCell(x, y, CellState.empty, null);
           }
           writeIndex--;
         }

@@ -18,7 +18,8 @@ class Block extends PositionComponent with HasGameRef<FietrisGame> {
     required this.cellSize,
     required Vector2 initialPosition,
   })  : color = blockType.color,
-        currentShapeOffsets = List.from(blockType.shape), // Başlangıçta ana şekli kopyala
+        currentShapeOffsets =
+            List.from(blockType.shape), // Başlangıçta ana şekli kopyala
         super(position: initialPosition);
 
   @override
@@ -65,7 +66,7 @@ class Block extends PositionComponent with HasGameRef<FietrisGame> {
     // try metodu ile döndürme işlemini dene
     tryRotate();
   }
-  
+
   /// Bloğu saat yönünde döndürmeyi dener.
   /// Başarılı olursa true, olmazsa false döndürür.
   bool tryRotate() {
@@ -76,7 +77,8 @@ class Block extends PositionComponent with HasGameRef<FietrisGame> {
     }).toList();
 
     // 2. Başlangıç çarpışma kontrolü (aynı pozisyonda, yeni şekille)
-    if (!gameRef.checkCollision(this, position, blockShapeOffsets: rotatedOffsets)) {
+    if (!gameRef.checkCollision(this, position,
+        blockShapeOffsets: rotatedOffsets)) {
       // Çarpışma yok, döndürmeyi uygula
       currentShapeOffsets = rotatedOffsets;
       _buildBlock(); // Görseli güncelle
@@ -88,13 +90,14 @@ class Block extends PositionComponent with HasGameRef<FietrisGame> {
     // Sadece 1 birim sola ve 1 birim sağa deneyelim
     final List<Vector2> kickOffsets = [
       Vector2(-cellSize, 0), // Sola itme
-      Vector2(cellSize, 0),  // Sağa itme
+      Vector2(cellSize, 0), // Sağa itme
       // TODO: Daha fazla kick offset eklenebilir (yukarı/aşağı, 2 birim vs.)
     ];
 
     for (var kick in kickOffsets) {
       final potentialPosition = position + kick; // İtilmiş potansiyel pozisyon
-      if (!gameRef.checkCollision(this, potentialPosition, blockShapeOffsets: rotatedOffsets)) {
+      if (!gameRef.checkCollision(this, potentialPosition,
+          blockShapeOffsets: rotatedOffsets)) {
         // Bu kick pozisyonunda çarpışma yok, döndürmeyi ve itmeyi uygula
         print("Rotated successfully with kick: $kick");
         position = potentialPosition; // Pozisyonu güncelle (itme)
