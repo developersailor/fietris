@@ -26,7 +26,7 @@ class AppView extends StatelessWidget {
         colorScheme: ColorScheme.fromSwatch(
           accentColor: const Color(0xFF2A48DF),
         ),
-        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+        scaffoldBackgroundColor: const Color.fromARGB(255, 0, 0, 0),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ButtonStyle(
             backgroundColor: WidgetStateProperty.all(const Color(0xFF2A48DF)),
@@ -35,14 +35,16 @@ class AppView extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: Scaffold(
-        body: GameWidget<FietrisGame>.controlled(
-          gameFactory: FietrisGame.new,
-          overlayBuilderMap: {
-            'onScreenControls': (context, game) =>
-                OnScreenControlsWidget(game: game),
-            'pauseScreen': (context, game) => PauseScreen(game: game),
-          },
-          initialActiveOverlays: const ['onScreenControls'],
+        body: SafeArea(
+          child: GameWidget<FietrisGame>.controlled(
+            gameFactory: FietrisGame.new,
+            overlayBuilderMap: {
+              'onScreenControls': (context, game) =>
+                  OnScreenControlsWidget(game: game),
+              'pauseScreen': (context, game) => PauseScreen(game: game),
+            },
+            initialActiveOverlays: const ['onScreenControls'],
+          ),
         ),
       ),
     );
